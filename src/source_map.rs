@@ -54,4 +54,43 @@ mod tests {
             vec![BytePos { raw: 0usize }, BytePos { raw: 4usize }]
         );
     }
+
+    #[test]
+    fn parse_start_pos_of_source_lines_from_text_with_newline_at_the_start() {
+        let source_text = "\nabc";
+        let source_line_pos = parse_start_pos_of_source_lines(source_text);
+        assert_eq!(
+            source_line_pos,
+            vec![BytePos { raw: 0usize }, BytePos { raw: 1usize }]
+        );
+    }
+
+    #[test]
+    fn parse_start_pos_of_source_lines_from_text_with_various_newlines_at_the_start() {
+        let source_text = "\n\n\nabc";
+        let source_line_pos = parse_start_pos_of_source_lines(source_text);
+        assert_eq!(
+            source_line_pos,
+            vec![
+                BytePos { raw: 0usize },
+                BytePos { raw: 1usize },
+                BytePos { raw: 2usize },
+                BytePos { raw: 3usize },
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_start_pos_of_source_lines_from_text_with_various_newlines_at_the_end() {
+        let source_text = "abc\n\n\n";
+        let source_line_pos = parse_start_pos_of_source_lines(source_text);
+        assert_eq!(
+            source_line_pos,
+            vec![
+                BytePos { raw: 0usize },
+                BytePos { raw: 4usize },
+                BytePos { raw: 5usize },
+            ]
+        );
+    }
 }
