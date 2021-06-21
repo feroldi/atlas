@@ -1,0 +1,9 @@
+cargo-features = ["edition2021"]
+
+[package]
+name = "atlas"
+version = "0.1.0"
+authors = ["Mário Feroldi <mferoldif@gmail.com>"]
+edition = "2021"
+
+[dependencies]
