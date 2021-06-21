@@ -3,8 +3,16 @@ struct BytePos {
     raw: usize,
 }
 
-fn parse_start_pos_of_source_lines(_: &str) -> Vec<BytePos> {
-    vec![BytePos { raw: 0usize }]
+fn parse_start_pos_of_source_lines(source_text: &str) -> Vec<BytePos> {
+    let mut start_pos_of_lines = vec![BytePos { raw: 0usize }];
+
+    if source_text.ends_with('\n') {
+        start_pos_of_lines.push(BytePos {
+            raw: source_text.len(),
+        });
+    }
+
+    start_pos_of_lines
 }
 
 #[cfg(test)]
@@ -23,5 +31,20 @@ mod tests {
         let source_text = "some text without newline";
         let source_line_pos = parse_start_pos_of_source_lines(source_text);
         assert_eq!(source_line_pos, vec![BytePos { raw: 0usize }]);
+    }
+
+    #[test]
+    fn parse_start_pos_of_source_lines_from_some_text_with_one_newline_at_the_end() {
+        let source_text = "abc\n";
+        let source_line_pos = parse_start_pos_of_source_lines(source_text);
+        assert_eq!(
+            source_line_pos,
+            vec![
+                BytePos { raw: 0usize },
+                BytePos {
+                    raw: source_text.len()
+                }
+            ]
+        );
     }
 }
