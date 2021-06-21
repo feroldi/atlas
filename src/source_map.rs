@@ -4,7 +4,11 @@ struct BytePos {
 }
 
 fn parse_start_pos_of_source_lines(source_text: &str) -> Vec<BytePos> {
-    let mut start_pos_of_lines = vec![BytePos { raw: 0usize }];
+    let mut start_pos_of_lines = if source_text.is_empty() {
+        vec![]
+    } else {
+        vec![BytePos { raw: 0 }]
+    };
 
     if source_text.ends_with('\n') {
         start_pos_of_lines.push(BytePos {
@@ -23,7 +27,7 @@ mod tests {
     fn parse_start_pos_of_source_lines_from_empty_text() {
         let source_text = "";
         let source_line_pos = parse_start_pos_of_source_lines(source_text);
-        assert_eq!(source_line_pos, vec![BytePos { raw: 0usize }]);
+        assert_eq!(source_line_pos, vec![]);
     }
 
     #[test]
