@@ -4,19 +4,20 @@ struct BytePos {
 }
 
 fn parse_start_pos_of_source_lines(source_text: &str) -> Vec<BytePos> {
-    let mut start_pos_of_lines = if source_text.is_empty() {
-        vec![]
+    std::iter::once(if source_text.is_empty() {
+        None
     } else {
-        vec![BytePos { raw: 0 }]
-    };
-
-    if source_text.ends_with('\n') {
-        start_pos_of_lines.push(BytePos {
-            raw: source_text.len() + 1,
-        });
-    }
-
-    start_pos_of_lines
+        Some(BytePos { raw: 0 })
+    })
+    .chain(source_text.bytes().enumerate().map(|(pos, byte)| {
+        if byte == b'\n' && pos + 1 < source_text.len() {
+            Some(BytePos { raw: pos + 1 })
+        } else {
+            None
+        }
+    }))
+    .flatten()
+    .collect()
 }
 
 #[cfg(test)]
@@ -31,24 +32,26 @@ mod tests {
     }
 
     #[test]
-    fn parse_start_pos_of_source_lines_from_some_text_without_newline() {
+    fn parse_start_pos_of_source_lines_from_text_without_newline() {
         let source_text = "some text without newline";
         let source_line_pos = parse_start_pos_of_source_lines(source_text);
         assert_eq!(source_line_pos, vec![BytePos { raw: 0usize }]);
     }
 
     #[test]
-    fn parse_start_pos_of_source_lines_from_some_text_with_one_newline_at_the_end() {
+    fn parse_start_pos_of_source_lines_from_text_with_newline_at_the_end() {
         let source_text = "abc\n";
+        let source_line_pos = parse_start_pos_of_source_lines(source_text);
+        assert_eq!(source_line_pos, vec![BytePos { raw: 0usize }]);
+    }
+
+    #[test]
+    fn parse_start_pos_of_source_lines_from_text_with_newline_in_the_middle() {
+        let source_text = "abc\ndef";
         let source_line_pos = parse_start_pos_of_source_lines(source_text);
         assert_eq!(
             source_line_pos,
-            vec![
-                BytePos { raw: 0usize },
-                BytePos {
-                    raw: source_text.len() + 1
-                }
-            ]
+            vec![BytePos { raw: 0usize }, BytePos { raw: 4usize }]
         );
     }
 }
