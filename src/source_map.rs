@@ -8,7 +8,7 @@ fn parse_start_pos_of_source_lines(source_text: &str) -> Vec<BytePos> {
 
     if source_text.ends_with('\n') {
         start_pos_of_lines.push(BytePos {
-            raw: source_text.len(),
+            raw: source_text.len() + 1,
         });
     }
 
@@ -42,7 +42,7 @@ mod tests {
             vec![
                 BytePos { raw: 0usize },
                 BytePos {
-                    raw: source_text.len()
+                    raw: source_text.len() + 1
                 }
             ]
         );
