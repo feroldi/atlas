@@ -17,4 +17,11 @@ mod tests {
         let source_line_pos = parse_start_pos_of_source_lines(source_text);
         assert_eq!(source_line_pos, vec![BytePos { raw: 0usize }]);
     }
+
+    #[test]
+    fn parse_start_pos_of_source_lines_from_some_text_without_newline() {
+        let source_text = "some text without newline";
+        let source_line_pos = parse_start_pos_of_source_lines(source_text);
+        assert_eq!(source_line_pos, vec![BytePos { raw: 0usize }]);
+    }
 }
