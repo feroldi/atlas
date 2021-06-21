@@ -2,20 +2,15 @@
 struct BytePos(usize);
 
 fn parse_start_pos_of_source_lines(source_text: &str) -> Vec<BytePos> {
-    std::iter::once(if source_text.is_empty() {
-        None
+    if source_text.is_empty() {
+        vec![]
     } else {
-        Some(BytePos(0))
-    })
-    .chain(source_text.bytes().enumerate().map(|(pos, byte)| {
-        if byte == b'\n' && pos + 1 < source_text.len() {
-            Some(BytePos(pos + 1))
-        } else {
-            None
-        }
-    }))
-    .flatten()
-    .collect()
+        std::iter::once(0usize)
+            .chain(source_text.match_indices('\n').map(|(idx, _)| idx + 1))
+            .filter(|&pos| pos < source_text.len())
+            .map(BytePos)
+            .collect()
+    }
 }
 
 #[cfg(test)]
