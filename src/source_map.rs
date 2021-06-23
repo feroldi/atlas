@@ -13,8 +13,12 @@ fn parse_start_pos_of_source_lines(source_text: &str) -> Vec<BytePos> {
     }
 }
 
-fn lookup_line_index(_: &[BytePos], _: BytePos) -> Option<usize> {
-    None
+fn lookup_line_index(lines_start_pos: &[BytePos], _: BytePos) -> Option<usize> {
+    if lines_start_pos.is_empty() {
+        None
+    } else {
+        Some(0)
+    }
 }
 
 #[cfg(test)]
@@ -89,8 +93,24 @@ mod tests {
         #[test]
         fn empty_start_pos_of_lines() {
             let start_pos_of_lines = Vec::<BytePos>::new();
-            let line_start_pos = lookup_line_index(&start_pos_of_lines, BytePos(0));
-            assert_eq!(line_start_pos, None::<usize>);
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(0));
+            assert_eq!(line_index, None::<usize>);
+        }
+
+        #[test]
+        fn one_line() {
+            let start_pos_of_lines = vec![BytePos(0)];
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(0));
+            assert_eq!(line_index, Some(0usize));
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(1));
+            assert_eq!(line_index, Some(0usize));
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(100));
+            assert_eq!(line_index, Some(0usize));
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(5000));
+            assert_eq!(line_index, Some(0usize));
         }
     }
 }
