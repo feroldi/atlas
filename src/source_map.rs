@@ -13,12 +13,12 @@ fn parse_start_pos_of_source_lines(source_text: &str) -> Vec<BytePos> {
     }
 }
 
-fn lookup_line_index(lines_start_pos: &[BytePos], _: BytePos) -> Option<usize> {
-    if lines_start_pos.is_empty() {
-        None
-    } else {
-        Some(0)
-    }
+fn lookup_line_index(lines_start_pos: &[BytePos], pos: BytePos) -> Option<usize> {
+    lines_start_pos
+        .iter()
+        .rev()
+        .position(|line_pos| line_pos.0 <= pos.0)
+        .map(|line_index| lines_start_pos.len() - line_index - 1)
 }
 
 #[cfg(test)]
@@ -100,6 +100,7 @@ mod tests {
         #[test]
         fn one_line() {
             let start_pos_of_lines = vec![BytePos(0)];
+
             let line_index = lookup_line_index(&start_pos_of_lines, BytePos(0));
             assert_eq!(line_index, Some(0usize));
 
@@ -111,6 +112,26 @@ mod tests {
 
             let line_index = lookup_line_index(&start_pos_of_lines, BytePos(5000));
             assert_eq!(line_index, Some(0usize));
+        }
+
+        #[test]
+        fn should_return_index_of_the_first_line_whose_pos_is_less_or_equal_to_input_pos() {
+            let start_pos_of_lines = vec![BytePos(0), BytePos(5), BytePos(10)];
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(0));
+            assert_eq!(line_index, Some(0usize));
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(4));
+            assert_eq!(line_index, Some(0usize));
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(5));
+            assert_eq!(line_index, Some(1usize));
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(9));
+            assert_eq!(line_index, Some(1usize));
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(10));
+            assert_eq!(line_index, Some(2usize));
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(50));
+            assert_eq!(line_index, Some(2usize));
         }
     }
 }
