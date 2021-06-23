@@ -133,5 +133,19 @@ mod tests {
             let line_index = lookup_line_index(&start_pos_of_lines, BytePos(50));
             assert_eq!(line_index, Some(2usize));
         }
+
+        #[test]
+        fn contiguous_lines() {
+            let start_pos_of_lines = vec![BytePos(0), BytePos(1), BytePos(2)];
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(0));
+            assert_eq!(line_index, Some(0usize));
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(1));
+            assert_eq!(line_index, Some(1usize));
+
+            let line_index = lookup_line_index(&start_pos_of_lines, BytePos(2));
+            assert_eq!(line_index, Some(2usize));
+        }
     }
 }
