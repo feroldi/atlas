@@ -13,7 +13,7 @@ fn parse_start_pos_of_source_lines(source_text: &str) -> Vec<BytePos> {
     }
 }
 
-fn lookup_line_start_pos(_: &[BytePos], _: BytePos) -> Option<BytePos> {
+fn lookup_line_index(_: &[BytePos], _: BytePos) -> Option<usize> {
     None
 }
 
@@ -83,14 +83,14 @@ mod tests {
         }
     }
 
-    mod lookup_line_start_pos_tests {
-        use crate::source_map::{lookup_line_start_pos, BytePos};
+    mod lookup_line_index_tests {
+        use crate::source_map::{lookup_line_index, BytePos};
 
         #[test]
         fn empty_start_pos_of_lines() {
             let start_pos_of_lines = Vec::<BytePos>::new();
-            let line_start_pos = lookup_line_start_pos(&start_pos_of_lines, BytePos(0));
-            assert_eq!(line_start_pos, None::<BytePos>);
+            let line_start_pos = lookup_line_index(&start_pos_of_lines, BytePos(0));
+            assert_eq!(line_start_pos, None::<usize>);
         }
     }
 }
