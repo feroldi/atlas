@@ -5,7 +5,6 @@ struct CharBumper<'chars> {
     peek_char: Option<char>,
 }
 
-// TODO: peek_is
 // TODO: bump_if
 
 impl<'a> From<&'a str> for CharBumper<'a> {
@@ -25,6 +24,18 @@ impl CharBumper<'_> {
         let old_peek = self.peek();
         self.peek_char = self.chars.next();
         old_peek
+    }
+
+    fn peek_is(&self, ch: char) -> bool {
+        self.peek() == Some(ch)
+    }
+
+    fn bump_if(&mut self, ch: char) -> bool {
+        let is_ch_peek = self.peek_is(ch);
+        if is_ch_peek {
+            self.bump();
+        }
+        is_ch_peek
     }
 }
 
@@ -88,5 +99,55 @@ mod tests {
         let _ = char_bumper.bump();
         let _ = char_bumper.bump();
         assert_eq!(char_bumper.peek(), None);
+    }
+
+    #[test]
+    fn peek_is_should_return_true_when_arg_equals_peek_char() {
+        let char_bumper = CharBumper::from("abc");
+        assert!(char_bumper.peek_is('a'));
+    }
+
+    #[test]
+    fn peek_is_should_return_false_when_arg_differs_from_peek_char() {
+        let char_bumper = CharBumper::from("abc");
+        assert!(!char_bumper.peek_is('b'));
+    }
+
+    #[test]
+    fn peek_is_should_not_advance_peeking_char() {
+        let char_bumper = CharBumper::from("abc");
+        let peek_before = char_bumper.peek();
+        let _ = char_bumper.peek_is('a');
+        let _ = char_bumper.peek_is('b');
+        let peek_after = char_bumper.peek();
+        assert_eq!(peek_before, peek_after);
+    }
+
+    #[test]
+    fn bump_if_should_return_true_when_arg_equals_peek_char() {
+        let mut char_bumper = CharBumper::from("abc");
+        assert!(char_bumper.bump_if('a'));
+    }
+
+    #[test]
+    fn bump_if_should_return_false_when_arg_differs_from_peek_char() {
+        let mut char_bumper = CharBumper::from("abc");
+        assert!(!char_bumper.bump_if('b'));
+    }
+
+    #[test]
+    fn bump_if_should_advance_peeking_char_if_it_returns_true() {
+        let mut char_bumper = CharBumper::from("abc");
+        assert_eq!(char_bumper.peek(), Some('a'));
+        assert!(char_bumper.bump_if('a'));
+        assert_eq!(char_bumper.peek(), Some('b'));
+    }
+
+    #[test]
+    fn bump_if_should_not_advance_peeking_char_if_it_returns_false() {
+        let mut char_bumper = CharBumper::from("abc");
+        assert_eq!(char_bumper.peek(), Some('a'));
+        assert!(!char_bumper.bump_if('b'));
+        assert_eq!(char_bumper.peek(), Some('a'));
     }
 }
