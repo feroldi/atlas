@@ -94,7 +94,7 @@ impl CharBumper<'_> {
 
     /// Bumps the peeking character if it is equal to `ch`.
     ///
-    /// Returns `true` when it bumps the peaking character, and `false` otherwise.
+    /// Returns `true` when it bumps the peeking character, and `false` otherwise.
     ///
     /// # Examples
     /// ```
