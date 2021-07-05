@@ -1,11 +1,29 @@
 use std::str::Chars;
 
-struct CharBumper<'chars> {
+/// A string consumer that allows peeking and bumping characters.
+///
+/// # Examples
+/// ```
+/// use atlas::char_bumper::CharBumper;
+///
+/// let mut char_bumper = CharBumper::from("ab");
+///
+/// assert_eq!(char_bumper.peek(), Some('a'));
+/// assert!(char_bumper.peek_is('a'));
+///
+/// assert_eq!(char_bumper.bump(), Some('a'));
+/// assert!(char_bumper.peek_is('b'));
+///
+/// assert!(!char_bumper.bump_if('c'));
+/// assert!(char_bumper.peek_is('b'));
+///
+/// assert!(char_bumper.bump_if('b'));
+/// assert_eq!(char_bumper.peek(), None);
+/// ```
+pub struct CharBumper<'chars> {
     chars: Chars<'chars>,
     peek_char: Option<char>,
 }
-
-// TODO: bump_if
 
 impl<'a> From<&'a str> for CharBumper<'a> {
     fn from(source: &'a str) -> CharBumper<'a> {
@@ -16,21 +34,81 @@ impl<'a> From<&'a str> for CharBumper<'a> {
 }
 
 impl CharBumper<'_> {
-    fn peek(&self) -> Option<char> {
+    /// Returns the current character.
+    ///
+    /// # Examples
+    /// ```
+    /// use atlas::char_bumper::CharBumper;
+    ///
+    /// let cb = CharBumper::from("abc");
+    /// assert_eq!(cb.peek(), Some('a'));
+    ///
+    /// let cb = CharBumper::from("");
+    /// assert_eq!(cb.peek(), None);
+    /// ```
+    pub fn peek(&self) -> Option<char> {
         self.peek_char
     }
 
-    fn bump(&mut self) -> Option<char> {
+    /// Returns the peeking character, and advances it to the next char.
+    ///
+    /// # Examples
+    /// ```
+    /// use atlas::char_bumper::CharBumper;
+    ///
+    /// let mut cb = CharBumper::from("abc");
+    ///
+    /// assert_eq!(cb.bump(), Some('a'));
+    /// assert_eq!(cb.peek(), Some('b'));
+    ///
+    /// assert_eq!(cb.bump(), Some('b'));
+    /// assert_eq!(cb.peek(), Some('c'));
+    ///
+    /// assert_eq!(cb.bump(), Some('c'));
+    /// assert_eq!(cb.peek(), None);
+    ///
+    /// assert_eq!(cb.bump(), None);
+    /// assert_eq!(cb.bump(), None);
+    /// assert_eq!(cb.bump(), None);
+    /// ```
+    pub fn bump(&mut self) -> Option<char> {
         let old_peek = self.peek();
         self.peek_char = self.chars.next();
         old_peek
     }
 
-    fn peek_is(&self, ch: char) -> bool {
+    /// Returns whether the peeking character is equal to `ch`.
+    ///
+    /// # Examples
+    /// ```
+    /// use atlas::char_bumper::CharBumper;
+    ///
+    /// let cb = CharBumper::from("abc");
+    ///
+    /// assert!(cb.peek_is('a'));
+    /// assert!(!cb.peek_is('b'));
+    /// ```
+    pub fn peek_is(&self, ch: char) -> bool {
         self.peek() == Some(ch)
     }
 
-    fn bump_if(&mut self, ch: char) -> bool {
+    /// Bumps the peeking character if it is equal to `ch`.
+    ///
+    /// Returns `true` when it bumps the peaking character, and `false` otherwise.
+    ///
+    /// # Examples
+    /// ```
+    /// use atlas::char_bumper::CharBumper;
+    ///
+    /// let mut cb = CharBumper::from("abc");
+    ///
+    /// assert!(!cb.bump_if('b'));
+    /// assert!(cb.peek_is('a'));
+    ///
+    /// assert!(cb.bump_if('a'));
+    /// assert!(cb.peek_is('b'));
+    /// ```
+    pub fn bump_if(&mut self, ch: char) -> bool {
         let is_ch_peek = self.peek_is(ch);
         if is_ch_peek {
             self.bump();
