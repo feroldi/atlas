@@ -1,5 +1,20 @@
-#[derive(Debug, PartialEq)]
-struct BytePos(usize);
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub(crate) struct BytePos(usize);
+
+pub(crate) trait Pos {
+    fn from_usize(value: usize) -> Self;
+    fn to_usize(self) -> usize;
+}
+
+impl Pos for BytePos {
+    fn from_usize(value: usize) -> BytePos {
+        BytePos(value)
+    }
+
+    fn to_usize(self) -> usize {
+        self.0
+    }
+}
 
 fn calc_lines_positions(source_text: &str) -> Vec<BytePos> {
     std::iter::once(0usize)
@@ -19,6 +34,22 @@ fn lookup_line_index(lines_pos: &[BytePos], pos: BytePos) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
+    mod impl_pos_for_byte_pos {
+        use crate::source_map::{BytePos, Pos};
+
+        #[test]
+        fn create_byte_pos_from_usize() {
+            let byte_pos = <BytePos as Pos>::from_usize(42usize);
+            assert_eq!(byte_pos, BytePos(42));
+        }
+
+        #[test]
+        fn convert_byte_pos_to_usize() {
+            let byte_pos = BytePos(42);
+            assert_eq!(<BytePos as Pos>::to_usize(byte_pos), 42usize);
+        }
+    }
+
     mod calc_lines_positions {
         use crate::source_map::{calc_lines_positions, BytePos};
 
