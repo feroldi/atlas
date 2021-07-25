@@ -87,7 +87,7 @@ mod tests {
         }
     }
 
-    mod lookup_line_index_tests {
+    mod lookup_line_index {
         use crate::source_map::{lookup_line_index, BytePos};
 
         #[test]
