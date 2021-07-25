@@ -2,15 +2,11 @@
 struct BytePos(usize);
 
 fn calc_lines_start_positions(source_text: &str) -> Vec<BytePos> {
-    if source_text.is_empty() {
-        vec![]
-    } else {
-        std::iter::once(0usize)
-            .chain(source_text.match_indices('\n').map(|(idx, _)| idx + 1))
-            .filter(|&pos| pos < source_text.len())
-            .map(BytePos)
-            .collect()
-    }
+    std::iter::once(0usize)
+        .chain(source_text.match_indices('\n').map(|(idx, _)| idx + 1))
+        .filter(|&pos| pos < source_text.len())
+        .map(BytePos)
+        .collect()
 }
 
 fn lookup_line_index(lines_start_pos: &[BytePos], pos: BytePos) -> Option<usize> {
