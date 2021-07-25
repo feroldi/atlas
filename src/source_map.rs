@@ -1,7 +1,7 @@
 #[derive(Debug, PartialEq)]
 struct BytePos(usize);
 
-fn calc_lines_start_positions(source_text: &str) -> Vec<BytePos> {
+fn calc_lines_positions(source_text: &str) -> Vec<BytePos> {
     std::iter::once(0usize)
         .chain(source_text.match_indices('\n').map(|(idx, _)| idx + 1))
         .filter(|&pos| pos < source_text.len())
@@ -9,60 +9,60 @@ fn calc_lines_start_positions(source_text: &str) -> Vec<BytePos> {
         .collect()
 }
 
-fn lookup_line_index(lines_start_pos: &[BytePos], pos: BytePos) -> Option<usize> {
-    lines_start_pos
+fn lookup_line_index(lines_pos: &[BytePos], pos: BytePos) -> Option<usize> {
+    lines_pos
         .iter()
         .rev()
-        .position(|line_pos| line_pos.0 <= pos.0)
-        .map(|line_index| lines_start_pos.len() - line_index - 1)
+        .position(|lines_pos| lines_pos.0 <= pos.0)
+        .map(|line_index| lines_pos.len() - line_index - 1)
 }
 
 #[cfg(test)]
 mod tests {
-    mod calc_lines_start_positions {
-        use crate::source_map::{calc_lines_start_positions, BytePos};
+    mod calc_lines_positions {
+        use crate::source_map::{calc_lines_positions, BytePos};
 
         #[test]
         fn empty_text() {
             let source_text = "";
-            let source_line_pos = calc_lines_start_positions(source_text);
-            assert_eq!(source_line_pos, vec![]);
+            let source_lines_pos = calc_lines_positions(source_text);
+            assert_eq!(source_lines_pos, vec![]);
         }
 
         #[test]
         fn text_without_newline() {
             let source_text = "some text without newline";
-            let source_line_pos = calc_lines_start_positions(source_text);
-            assert_eq!(source_line_pos, vec![BytePos(0usize)]);
+            let source_lines_pos = calc_lines_positions(source_text);
+            assert_eq!(source_lines_pos, vec![BytePos(0usize)]);
         }
 
         #[test]
         fn text_with_newline_at_the_end() {
             let source_text = "abc\n";
-            let source_line_pos = calc_lines_start_positions(source_text);
-            assert_eq!(source_line_pos, vec![BytePos(0usize)]);
+            let source_lines_pos = calc_lines_positions(source_text);
+            assert_eq!(source_lines_pos, vec![BytePos(0usize)]);
         }
 
         #[test]
         fn text_with_newline_in_the_middle() {
             let source_text = "abc\ndef";
-            let source_line_pos = calc_lines_start_positions(source_text);
-            assert_eq!(source_line_pos, vec![BytePos(0usize), BytePos(4usize)]);
+            let source_lines_pos = calc_lines_positions(source_text);
+            assert_eq!(source_lines_pos, vec![BytePos(0usize), BytePos(4usize)]);
         }
 
         #[test]
         fn text_with_newline_at_the_start() {
             let source_text = "\nabc";
-            let source_line_pos = calc_lines_start_positions(source_text);
-            assert_eq!(source_line_pos, vec![BytePos(0usize), BytePos(1usize)]);
+            let source_lines_pos = calc_lines_positions(source_text);
+            assert_eq!(source_lines_pos, vec![BytePos(0usize), BytePos(1usize)]);
         }
 
         #[test]
         fn text_with_various_newlines_at_the_start() {
             let source_text = "\n\n\nabc";
-            let source_line_pos = calc_lines_start_positions(source_text);
+            let source_lines_pos = calc_lines_positions(source_text);
             assert_eq!(
-                source_line_pos,
+                source_lines_pos,
                 vec![
                     BytePos(0usize),
                     BytePos(1usize),
@@ -75,9 +75,9 @@ mod tests {
         #[test]
         fn text_with_various_newlines_at_the_end() {
             let source_text = "abc\n\n\n";
-            let source_line_pos = calc_lines_start_positions(source_text);
+            let source_lines_pos = calc_lines_positions(source_text);
             assert_eq!(
-                source_line_pos,
+                source_lines_pos,
                 vec![BytePos(0usize), BytePos(4usize), BytePos(5usize)]
             );
         }
