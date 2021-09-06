@@ -1,3 +1,4 @@
+use crate::source_map::{BytePos, Pos};
 use std::str::Chars;
 
 /// A string consumer that allows peeking and bumping characters.
@@ -23,13 +24,18 @@ use std::str::Chars;
 pub struct CharBumper<'chars> {
     chars: Chars<'chars>,
     peek_char: Option<char>,
+    peek_char_byte_pos: BytePos,
 }
 
 impl<'a> From<&'a str> for CharBumper<'a> {
     fn from(source: &'a str) -> CharBumper<'a> {
         let mut chars = source.chars();
         let peek_char = chars.next();
-        CharBumper { chars, peek_char }
+        CharBumper {
+            chars,
+            peek_char,
+            peek_char_byte_pos: BytePos::from_usize(0),
+        }
     }
 }
 
@@ -74,6 +80,9 @@ impl CharBumper<'_> {
     pub fn bump(&mut self) -> Option<char> {
         let old_peek = self.peek();
         self.peek_char = self.chars.next();
+        if let Some(ch) = old_peek {
+            self.peek_char_byte_pos += BytePos::from_usize(ch.len_utf8());
+        }
         old_peek
     }
 
@@ -115,11 +124,16 @@ impl CharBumper<'_> {
         }
         is_ch_peek
     }
+
+    fn get_byte_pos_of_peeking_char(&self) -> BytePos {
+        self.peek_char_byte_pos
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::char_bumper::CharBumper;
+    use crate::source_map::{BytePos, Pos};
 
     #[test]
     fn peek_should_return_none_when_input_is_empty() {
@@ -227,5 +241,82 @@ mod tests {
         assert_eq!(char_bumper.peek(), Some('a'));
         assert!(!char_bumper.bump_if('b'));
         assert_eq!(char_bumper.peek(), Some('a'));
+    }
+
+    #[test]
+    fn current_peek_pos_is_initially_zero() {
+        let char_bumper = CharBumper::from("abc");
+        assert_eq!(
+            char_bumper.get_byte_pos_of_peeking_char(),
+            BytePos::from_usize(0)
+        );
+    }
+
+    #[test]
+    fn current_peek_pos_remains_the_same_after_peeking_a_char() {
+        let char_bumper = CharBumper::from("abc");
+
+        let before_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+        let _ = char_bumper.peek();
+        let after_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+
+        assert_eq!(before_byte_pos, after_byte_pos);
+    }
+
+    #[test]
+    fn current_peek_pos_advances_by_one_after_bumping_an_ascii_char() {
+        let mut char_bumper = CharBumper::from("abc");
+
+        let first_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+
+        let _ = char_bumper.bump();
+        let second_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+
+        assert_eq!(second_byte_pos, first_byte_pos + BytePos::from_usize(1));
+
+        let _ = char_bumper.bump();
+        let third_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+
+        assert_eq!(third_byte_pos, first_byte_pos + BytePos::from_usize(2));
+    }
+
+    #[test]
+    fn current_peek_pos_advances_by_the_char_length_after_bumping_a_utf8_char() {
+        let source_input_and_length = [("\u{80}", 2), ("\u{800}", 3), ("\u{10000}", 4)];
+
+        for (source, byte_length) in source_input_and_length {
+            let mut char_bumper = CharBumper::from(source);
+
+            let first_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+            let _ = char_bumper.bump();
+            let second_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+
+            assert_eq!(
+                second_byte_pos,
+                first_byte_pos + BytePos::from_usize(byte_length)
+            );
+        }
+    }
+
+    #[test]
+    fn current_peek_pos_doesnt_advance_when_bumping_past_the_last_char() {
+        let mut char_bumper = CharBumper::from("abc");
+
+        let initial_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+
+        assert_eq!(char_bumper.bump(), Some('a'));
+        assert_eq!(char_bumper.bump(), Some('b'));
+        assert_eq!(char_bumper.bump(), Some('c'));
+
+        let last_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+        assert_eq!(last_byte_pos, initial_byte_pos + BytePos::from_usize(3));
+
+        assert_eq!(char_bumper.bump(), None);
+
+        let past_last_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
+        assert_eq!(
+            past_last_byte_pos,
+            initial_byte_pos + BytePos::from_usize(3)
+        );
     }
 }

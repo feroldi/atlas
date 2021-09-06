@@ -1,10 +1,12 @@
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub(crate) struct BytePos(usize);
+use std::ops::{Add, AddAssign};
 
-pub(crate) trait Pos {
+pub(crate) trait Pos: Sized + Add + AddAssign {
     fn from_usize(value: usize) -> Self;
     fn to_usize(self) -> usize;
 }
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub(crate) struct BytePos(usize);
 
 impl Pos for BytePos {
     fn from_usize(value: usize) -> BytePos {
@@ -13,6 +15,20 @@ impl Pos for BytePos {
 
     fn to_usize(self) -> usize {
         self.0
+    }
+}
+
+impl Add for BytePos {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        Self::from_usize(self.to_usize() + rhs.to_usize())
+    }
+}
+
+impl AddAssign for BytePos {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs
     }
 }
 
@@ -47,6 +63,28 @@ mod tests {
         fn convert_byte_pos_to_usize() {
             let byte_pos = BytePos(42);
             assert_eq!(<BytePos as Pos>::to_usize(byte_pos), 42usize);
+        }
+    }
+
+    mod addition_of_byte_pos {
+        use crate::source_map::{BytePos, Pos};
+
+        #[test]
+        fn add_two_byte_poses() {
+            let p1 = BytePos::from_usize(2);
+            let p2 = BytePos::from_usize(3);
+
+            assert_eq!(p1 + p2, BytePos::from_usize(5));
+        }
+
+        #[test]
+        fn add_assign_two_byte_poses() {
+            let mut p1 = BytePos::from_usize(2);
+            let p2 = BytePos::from_usize(3);
+
+            p1 += p2;
+
+            assert_eq!(p1, BytePos::from_usize(5));
         }
     }
 
