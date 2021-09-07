@@ -1,12 +1,12 @@
 use std::ops::{Add, AddAssign};
 
-pub(crate) trait Pos: Sized + Add + AddAssign {
+pub trait Pos: Sized + Add + AddAssign {
     fn from_usize(value: usize) -> Self;
     fn to_usize(self) -> usize;
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub(crate) struct BytePos(usize);
+pub struct BytePos(usize);
 
 impl Pos for BytePos {
     fn from_usize(value: usize) -> BytePos {

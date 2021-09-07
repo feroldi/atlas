@@ -125,7 +125,46 @@ impl CharBumper<'_> {
         is_ch_peek
     }
 
-    fn get_byte_pos_of_peeking_char(&self) -> BytePos {
+    /// Returns the byte position of the peeking character.
+    ///
+    /// As [`bump`][bump] is called, the byte position of the peeking character is updated. At each
+    /// update, the UTF-8 byte length of the former peeking character is taken into account, as to
+    /// correctly point to the next character.
+    ///
+    /// # Examples
+    ///
+    /// The following code shows the byte position being advanced by one byte at a time for an
+    /// input made of ASCII-only characters.
+    ///
+    /// ```
+    /// # use atlas::{char_bumper::CharBumper, source_map::{BytePos, Pos}};
+    /// let mut cb = CharBumper::from("abc");
+    ///
+    /// assert_eq!(cb.get_byte_pos_of_peeking_char(), BytePos::from_usize(0));
+    ///
+    /// cb.bump();
+    /// assert_eq!(cb.get_byte_pos_of_peeking_char(), BytePos::from_usize(1));
+    ///
+    /// cb.bump();
+    /// assert_eq!(cb.get_byte_pos_of_peeking_char(), BytePos::from_usize(2));
+    /// ```
+    ///
+    /// When the input string contains UTF-8 characters, the byte position is updated according to
+    /// the byte length of said characters.
+    ///
+    /// ```
+    /// # use atlas::{char_bumper::CharBumper, source_map::{BytePos, Pos}};
+    /// // PILE OF POO is 4-byte long.
+    /// let mut cb = CharBumper::from("💩");
+    ///
+    /// assert_eq!(cb.get_byte_pos_of_peeking_char(), BytePos::from_usize(0));
+    ///
+    /// cb.bump();
+    /// assert_eq!(cb.get_byte_pos_of_peeking_char(), BytePos::from_usize(4));
+    /// ```
+    ///
+    /// [bump]: crate::char_bumper::CharBumper::bump
+    pub fn get_byte_pos_of_peeking_char(&self) -> BytePos {
         self.peek_char_byte_pos
     }
 }
