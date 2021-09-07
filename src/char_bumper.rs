@@ -7,7 +7,7 @@ use std::str::Chars;
 /// ```
 /// use atlas::char_bumper::CharBumper;
 ///
-/// let mut char_bumper = CharBumper::from("ab");
+/// let mut char_bumper = CharBumper::with_source("ab");
 ///
 /// assert_eq!(char_bumper.peek(), Some('a'));
 /// assert!(char_bumper.peek_is('a'));
@@ -27,8 +27,9 @@ pub struct CharBumper<'chars> {
     peek_char_byte_pos: BytePos,
 }
 
-impl<'a> From<&'a str> for CharBumper<'a> {
-    fn from(source: &'a str) -> CharBumper<'a> {
+impl CharBumper<'_> {
+    /// Constructs a `CharBumper` with the given source string.
+    pub fn with_source(source: &str) -> CharBumper {
         let mut chars = source.chars();
         let peek_char = chars.next();
         CharBumper {
@@ -37,19 +38,17 @@ impl<'a> From<&'a str> for CharBumper<'a> {
             peek_char_byte_pos: BytePos::from_usize(0),
         }
     }
-}
 
-impl CharBumper<'_> {
     /// Returns the current character.
     ///
     /// # Examples
     /// ```
     /// use atlas::char_bumper::CharBumper;
     ///
-    /// let cb = CharBumper::from("abc");
+    /// let cb = CharBumper::with_source("abc");
     /// assert_eq!(cb.peek(), Some('a'));
     ///
-    /// let cb = CharBumper::from("");
+    /// let cb = CharBumper::with_source("");
     /// assert_eq!(cb.peek(), None);
     /// ```
     pub fn peek(&self) -> Option<char> {
@@ -62,7 +61,7 @@ impl CharBumper<'_> {
     /// ```
     /// use atlas::char_bumper::CharBumper;
     ///
-    /// let mut cb = CharBumper::from("abc");
+    /// let mut cb = CharBumper::with_source("abc");
     ///
     /// assert_eq!(cb.bump(), Some('a'));
     /// assert_eq!(cb.peek(), Some('b'));
@@ -92,7 +91,7 @@ impl CharBumper<'_> {
     /// ```
     /// use atlas::char_bumper::CharBumper;
     ///
-    /// let cb = CharBumper::from("abc");
+    /// let cb = CharBumper::with_source("abc");
     ///
     /// assert!(cb.peek_is('a'));
     /// assert!(!cb.peek_is('b'));
@@ -109,7 +108,7 @@ impl CharBumper<'_> {
     /// ```
     /// use atlas::char_bumper::CharBumper;
     ///
-    /// let mut cb = CharBumper::from("abc");
+    /// let mut cb = CharBumper::with_source("abc");
     ///
     /// assert!(!cb.bump_if('b'));
     /// assert!(cb.peek_is('a'));
@@ -138,7 +137,7 @@ impl CharBumper<'_> {
     ///
     /// ```
     /// # use atlas::{char_bumper::CharBumper, source_map::{BytePos, Pos}};
-    /// let mut cb = CharBumper::from("abc");
+    /// let mut cb = CharBumper::with_source("abc");
     ///
     /// assert_eq!(cb.get_byte_pos_of_peeking_char(), BytePos::from_usize(0));
     ///
@@ -155,7 +154,7 @@ impl CharBumper<'_> {
     /// ```
     /// # use atlas::{char_bumper::CharBumper, source_map::{BytePos, Pos}};
     /// // PILE OF POO is 4-byte long.
-    /// let mut cb = CharBumper::from("💩");
+    /// let mut cb = CharBumper::with_source("💩");
     ///
     /// assert_eq!(cb.get_byte_pos_of_peeking_char(), BytePos::from_usize(0));
     ///
@@ -176,19 +175,19 @@ mod tests {
 
     #[test]
     fn peek_should_return_none_when_input_is_empty() {
-        let char_bumper = CharBumper::from("");
+        let char_bumper = CharBumper::with_source("");
         assert_eq!(char_bumper.peek(), None::<char>);
     }
 
     #[test]
     fn peek_should_return_first_char_from_input_when_it_is_not_empty() {
-        let char_bumper = CharBumper::from("abc");
+        let char_bumper = CharBumper::with_source("abc");
         assert_eq!(char_bumper.peek(), Some('a'));
     }
 
     #[test]
     fn multiple_calls_to_peek_should_return_the_same_char() {
-        let char_bumper = CharBumper::from("abc");
+        let char_bumper = CharBumper::with_source("abc");
 
         assert_eq!(char_bumper.peek(), Some('a'));
         assert_eq!(char_bumper.peek(), Some('a'));
@@ -197,26 +196,26 @@ mod tests {
 
     #[test]
     fn bump_should_return_none_when_input_is_empty() {
-        let mut char_bumper = CharBumper::from("");
+        let mut char_bumper = CharBumper::with_source("");
         assert_eq!(char_bumper.bump(), None::<char>);
     }
 
     #[test]
     fn bump_should_return_first_char_from_input_when_it_is_not_empty() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
         assert_eq!(char_bumper.bump(), Some('a'));
     }
 
     #[test]
     fn bump_should_advance_the_peeking_character_to_the_next_char() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
         let _ = char_bumper.bump();
         assert_eq!(char_bumper.peek(), Some('b'));
     }
 
     #[test]
     fn bump_should_return_none_when_all_chars_have_been_bumped() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
         let _ = char_bumper.bump();
         let _ = char_bumper.bump();
         let _ = char_bumper.bump();
@@ -225,7 +224,7 @@ mod tests {
 
     #[test]
     fn peek_should_return_none_when_all_chars_have_been_bumped() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
         let _ = char_bumper.bump();
         let _ = char_bumper.bump();
         let _ = char_bumper.bump();
@@ -234,19 +233,19 @@ mod tests {
 
     #[test]
     fn peek_is_should_return_true_when_arg_equals_peek_char() {
-        let char_bumper = CharBumper::from("abc");
+        let char_bumper = CharBumper::with_source("abc");
         assert!(char_bumper.peek_is('a'));
     }
 
     #[test]
     fn peek_is_should_return_false_when_arg_differs_from_peek_char() {
-        let char_bumper = CharBumper::from("abc");
+        let char_bumper = CharBumper::with_source("abc");
         assert!(!char_bumper.peek_is('b'));
     }
 
     #[test]
     fn peek_is_should_not_advance_peeking_char() {
-        let char_bumper = CharBumper::from("abc");
+        let char_bumper = CharBumper::with_source("abc");
         let peek_before = char_bumper.peek();
         let _ = char_bumper.peek_is('a');
         let _ = char_bumper.peek_is('b');
@@ -256,19 +255,19 @@ mod tests {
 
     #[test]
     fn bump_if_should_return_true_when_arg_equals_peek_char() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
         assert!(char_bumper.bump_if('a'));
     }
 
     #[test]
     fn bump_if_should_return_false_when_arg_differs_from_peek_char() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
         assert!(!char_bumper.bump_if('b'));
     }
 
     #[test]
     fn bump_if_should_advance_peeking_char_if_it_returns_true() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
         assert_eq!(char_bumper.peek(), Some('a'));
         assert!(char_bumper.bump_if('a'));
         assert_eq!(char_bumper.peek(), Some('b'));
@@ -276,7 +275,7 @@ mod tests {
 
     #[test]
     fn bump_if_should_not_advance_peeking_char_if_it_returns_false() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
         assert_eq!(char_bumper.peek(), Some('a'));
         assert!(!char_bumper.bump_if('b'));
         assert_eq!(char_bumper.peek(), Some('a'));
@@ -284,7 +283,7 @@ mod tests {
 
     #[test]
     fn current_peek_pos_is_initially_zero() {
-        let char_bumper = CharBumper::from("abc");
+        let char_bumper = CharBumper::with_source("abc");
         assert_eq!(
             char_bumper.get_byte_pos_of_peeking_char(),
             BytePos::from_usize(0)
@@ -293,7 +292,7 @@ mod tests {
 
     #[test]
     fn current_peek_pos_remains_the_same_after_peeking_a_char() {
-        let char_bumper = CharBumper::from("abc");
+        let char_bumper = CharBumper::with_source("abc");
 
         let before_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
         let _ = char_bumper.peek();
@@ -304,7 +303,7 @@ mod tests {
 
     #[test]
     fn current_peek_pos_advances_by_one_after_bumping_an_ascii_char() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
 
         let first_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
 
@@ -324,7 +323,7 @@ mod tests {
         let source_input_and_length = [("\u{80}", 2), ("\u{800}", 3), ("\u{10000}", 4)];
 
         for (source, byte_length) in source_input_and_length {
-            let mut char_bumper = CharBumper::from(source);
+            let mut char_bumper = CharBumper::with_source(source);
 
             let first_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
             let _ = char_bumper.bump();
@@ -339,7 +338,7 @@ mod tests {
 
     #[test]
     fn current_peek_pos_doesnt_advance_when_bumping_past_the_last_char() {
-        let mut char_bumper = CharBumper::from("abc");
+        let mut char_bumper = CharBumper::with_source("abc");
 
         let initial_byte_pos = char_bumper.get_byte_pos_of_peeking_char();
 
