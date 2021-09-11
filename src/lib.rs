@@ -1,2 +1,2 @@
-pub mod char_bumper;
-pub mod source_map;
+pub mod scanner;
+mod source_map;
