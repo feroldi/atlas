@@ -3,36 +3,40 @@ use std::str::Chars;
 
 pub struct Scanner<'chars> {
     chars: Chars<'chars>,
-    peek_char: Option<char>,
+    peeked_char: Option<char>,
     byte_pos_of_peeking_char: BytePos,
 }
 
 impl Scanner<'_> {
     pub fn with_input(source: &str) -> Scanner {
-        let mut chars = source.chars();
-        let peek_char = chars.next();
-        Scanner {
-            chars,
-            peek_char,
+        let mut scanner = Scanner {
+            chars: source.chars(),
+            peeked_char: None,
             byte_pos_of_peeking_char: BytePos::from_usize(0),
-        }
+        };
+
+        // Consumes the first char by the C rules, making it available
+        // as the peeking char.
+        let _ = scanner.consume_char();
+
+        scanner
     }
 
-    pub fn peek_char(&self) -> Option<char> {
-        self.peek_char
+    pub fn peek_char(&self) -> char {
+        self.peeked_char.unwrap_or('\0')
     }
 
-    pub fn consume_char(&mut self) -> Option<char> {
+    pub fn consume_char(&mut self) -> char {
         let old_peek = self.peek_char();
-        self.peek_char = self.chars.next();
-        if let Some(ch) = old_peek {
-            self.byte_pos_of_peeking_char += BytePos::from_usize(ch.len_utf8());
+        self.peeked_char = self.chars.next();
+        if old_peek != '\0' {
+            self.byte_pos_of_peeking_char += BytePos::from_usize(old_peek.len_utf8());
         }
         old_peek
     }
 
     pub fn peek_char_is(&self, ch: char) -> bool {
-        self.peek_char() == Some(ch)
+        self.peek_char() == ch
     }
 
     pub fn consume_char_if(&mut self, ch: char) -> bool {
@@ -50,43 +54,43 @@ mod tests {
     use crate::source_map::{BytePos, Pos};
 
     #[test]
-    fn peek_should_return_none_when_input_is_empty() {
+    fn peek_char_should_return_nul_when_input_is_empty() {
         let scanner = Scanner::with_input("");
-        assert_eq!(scanner.peek_char(), None::<char>);
+        assert_eq!(scanner.peek_char(), '\0');
     }
 
     #[test]
-    fn peek_should_return_first_char_from_input_when_it_is_not_empty() {
+    fn peek_char_should_return_first_char_from_input_when_it_is_not_empty() {
         let scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.peek_char(), Some('a'));
+        assert_eq!(scanner.peek_char(), 'a');
     }
 
     #[test]
-    fn multiple_calls_to_peek_should_return_the_same_char() {
+    fn multiple_calls_to_peek_char_should_return_the_same_char() {
         let scanner = Scanner::with_input("abc");
 
-        assert_eq!(scanner.peek_char(), Some('a'));
-        assert_eq!(scanner.peek_char(), Some('a'));
-        assert_eq!(scanner.peek_char(), Some('a'));
+        assert_eq!(scanner.peek_char(), 'a');
+        assert_eq!(scanner.peek_char(), 'a');
+        assert_eq!(scanner.peek_char(), 'a');
     }
 
     #[test]
-    fn consume_char_should_return_none_when_input_is_empty() {
+    fn consume_char_should_return_nul_when_input_is_empty() {
         let mut scanner = Scanner::with_input("");
-        assert_eq!(scanner.consume_char(), None::<char>);
+        assert_eq!(scanner.consume_char(), '\0');
     }
 
     #[test]
     fn consume_char_should_return_first_char_from_input_when_it_is_not_empty() {
         let mut scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.consume_char(), Some('a'));
+        assert_eq!(scanner.consume_char(), 'a');
     }
 
     #[test]
     fn consume_char_should_advance_the_peeking_character_to_the_next_char() {
         let mut scanner = Scanner::with_input("abc");
         let _ = scanner.consume_char();
-        assert_eq!(scanner.peek_char(), Some('b'));
+        assert_eq!(scanner.peek_char(), 'b');
     }
 
     #[test]
@@ -95,32 +99,32 @@ mod tests {
         let _ = scanner.consume_char();
         let _ = scanner.consume_char();
         let _ = scanner.consume_char();
-        assert_eq!(scanner.consume_char(), None);
+        assert_eq!(scanner.consume_char(), '\0');
     }
 
     #[test]
-    fn peek_should_return_none_when_all_chars_have_been_consume_chared() {
+    fn peek_char_should_return_nul_when_all_chars_have_been_consume_chared() {
         let mut scanner = Scanner::with_input("abc");
         let _ = scanner.consume_char();
         let _ = scanner.consume_char();
         let _ = scanner.consume_char();
-        assert_eq!(scanner.peek_char(), None);
+        assert_eq!(scanner.peek_char(), '\0');
     }
 
     #[test]
-    fn peek_is_should_return_true_when_arg_equals_peek_char() {
+    fn peek_char_is_should_return_true_when_arg_equals_peek_char() {
         let scanner = Scanner::with_input("abc");
         assert!(scanner.peek_char_is('a'));
     }
 
     #[test]
-    fn peek_is_should_return_false_when_arg_differs_from_peek_char() {
+    fn peek_char_is_should_return_false_when_arg_differs_from_peek_char() {
         let scanner = Scanner::with_input("abc");
         assert!(!scanner.peek_char_is('b'));
     }
 
     #[test]
-    fn peek_is_should_not_advance_peeking_char() {
+    fn peek_char_is_should_not_advance_peeking_char() {
         let scanner = Scanner::with_input("abc");
         let peek_before = scanner.peek_char();
         let _ = scanner.peek_char_is('a');
@@ -144,17 +148,17 @@ mod tests {
     #[test]
     fn consume_char_if_should_advance_peeking_char_if_it_returns_true() {
         let mut scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.peek_char(), Some('a'));
+        assert_eq!(scanner.peek_char(), 'a');
         assert!(scanner.consume_char_if('a'));
-        assert_eq!(scanner.peek_char(), Some('b'));
+        assert_eq!(scanner.peek_char(), 'b');
     }
 
     #[test]
     fn consume_char_if_should_not_advance_peeking_char_if_it_returns_false() {
         let mut scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.peek_char(), Some('a'));
+        assert_eq!(scanner.peek_char(), 'a');
         assert!(!scanner.consume_char_if('b'));
-        assert_eq!(scanner.peek_char(), Some('a'));
+        assert_eq!(scanner.peek_char(), 'a');
     }
 
     #[test]
@@ -215,14 +219,14 @@ mod tests {
 
         let initial_byte_pos = scanner.byte_pos_of_peeking_char;
 
-        assert_eq!(scanner.consume_char(), Some('a'));
-        assert_eq!(scanner.consume_char(), Some('b'));
-        assert_eq!(scanner.consume_char(), Some('c'));
+        assert_eq!(scanner.consume_char(), 'a');
+        assert_eq!(scanner.consume_char(), 'b');
+        assert_eq!(scanner.consume_char(), 'c');
 
         let last_byte_pos = scanner.byte_pos_of_peeking_char;
         assert_eq!(last_byte_pos, initial_byte_pos + BytePos::from_usize(3));
 
-        assert_eq!(scanner.consume_char(), None);
+        assert_eq!(scanner.consume_char(), '\0');
 
         let past_last_byte_pos = scanner.byte_pos_of_peeking_char;
         assert_eq!(
