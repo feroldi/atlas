@@ -33,7 +33,7 @@ pub enum ScanError {}
 
 pub struct Scanner<'chars> {
     chars: Chars<'chars>,
-    peeked_char: Option<char>,
+    peeked_char: char,
     byte_pos_of_peeking_char: BytePos,
 }
 
@@ -41,7 +41,7 @@ impl Scanner<'_> {
     pub fn with_input(source: &str) -> Scanner {
         let mut scanner = Scanner {
             chars: source.chars(),
-            peeked_char: None,
+            peeked_char: '\0',
             byte_pos_of_peeking_char: BytePos::from_usize(0),
         };
 
@@ -70,12 +70,12 @@ impl Scanner<'_> {
     }
 
     fn peek_char(&self) -> char {
-        self.peeked_char.unwrap_or('\0')
+        self.peeked_char
     }
 
     fn consume_char(&mut self) -> char {
         let old_peek = self.peek_char();
-        self.peeked_char = self.chars.next();
+        self.peeked_char = self.chars.next().unwrap_or('\0');
         if old_peek != '\0' {
             self.byte_pos_of_peeking_char += BytePos::from_usize(old_peek.len_utf8());
         }
