@@ -87,8 +87,8 @@ impl Scanner<'_> {
     }
 
     // TODO: Need not be pub.
-    // FIXME: Handle '\0'.
     pub fn consume_char_if(&mut self, ch: char) -> bool {
+        debug_assert!(ch != '\0', "cannot expect NUL char");
         let is_ch_peek = self.peek_char_is(ch);
         if is_ch_peek {
             self.consume_char();
@@ -192,6 +192,13 @@ mod tests {
     fn consume_char_if_should_return_false_when_arg_differs_from_peek_char() {
         let mut scanner = Scanner::with_input("abc");
         assert!(!scanner.consume_char_if('b'));
+    }
+
+    #[test]
+    #[should_panic(expected = "cannot expect NUL char")]
+    fn consume_char_if_should_panic_when_expected_char_is_nul() {
+        let mut scanner = Scanner::with_input("abc");
+        let _ = scanner.consume_char_if('\0');
     }
 
     #[test]
