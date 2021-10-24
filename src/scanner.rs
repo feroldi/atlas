@@ -94,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn consume_char_should_return_none_when_all_chars_have_been_consume_chared() {
+    fn consume_char_should_return_nul_when_all_chars_have_been_consume_chared() {
         let mut scanner = Scanner::with_input("abc");
         let _ = scanner.consume_char();
         let _ = scanner.consume_char();
