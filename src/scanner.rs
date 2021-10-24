@@ -1,6 +1,36 @@
 use crate::source_map::{BytePos, Pos};
 use std::str::Chars;
 
+#[derive(PartialEq, Debug)]
+pub enum Bracket {
+    Round,
+    Square,
+    Curly,
+}
+
+#[derive(PartialEq, Debug)]
+pub enum TokenKind {
+    Open(Bracket),
+    Closed(Bracket),
+    Eof,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Token {
+    pub kind: TokenKind,
+}
+
+impl Token {
+    fn eof() -> Token {
+        Token {
+            kind: TokenKind::Eof,
+        }
+    }
+}
+
+#[derive(PartialEq, Debug)]
+pub enum ScanError {}
+
 pub struct Scanner<'chars> {
     chars: Chars<'chars>,
     peeked_char: Option<char>,
@@ -22,11 +52,28 @@ impl Scanner<'_> {
         scanner
     }
 
-    pub fn peek_char(&self) -> char {
+    pub fn scan_next_token(&mut self) -> Result<Token, ScanError> {
+        let token_kind = match self.consume_char() {
+            '(' => TokenKind::Open(Bracket::Round),
+            ')' => TokenKind::Closed(Bracket::Round),
+            '[' => TokenKind::Open(Bracket::Square),
+            ']' => TokenKind::Closed(Bracket::Square),
+            '{' => TokenKind::Open(Bracket::Curly),
+            '}' => TokenKind::Closed(Bracket::Curly),
+
+            // End of input.
+            '\0' => return Ok(Token::eof()),
+            _ => unimplemented!(),
+        };
+
+        Ok(Token { kind: token_kind })
+    }
+
+    fn peek_char(&self) -> char {
         self.peeked_char.unwrap_or('\0')
     }
 
-    pub fn consume_char(&mut self) -> char {
+    fn consume_char(&mut self) -> char {
         let old_peek = self.peek_char();
         self.peeked_char = self.chars.next();
         if old_peek != '\0' {
@@ -35,10 +82,12 @@ impl Scanner<'_> {
         old_peek
     }
 
-    pub fn peek_char_is(&self, ch: char) -> bool {
+    fn peek_char_is(&self, ch: char) -> bool {
         self.peek_char() == ch
     }
 
+    // TODO: Need not be pub.
+    // FIXME: Handle '\0'.
     pub fn consume_char_if(&mut self, ch: char) -> bool {
         let is_ch_peek = self.peek_char_is(ch);
         if is_ch_peek {
@@ -50,7 +99,7 @@ impl Scanner<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::Scanner;
+    use super::{Bracket, Scanner, Token, TokenKind};
     use crate::source_map::{BytePos, Pos};
 
     #[test]
@@ -233,5 +282,38 @@ mod tests {
             past_last_byte_pos,
             initial_byte_pos + BytePos::from_usize(3)
         );
+    }
+
+    #[test]
+    fn scanning_an_empty_input_returns_an_eof_token() {
+        let mut scanner = Scanner::with_input("");
+
+        let tok = scanner.scan_next_token();
+
+        assert!(matches!(
+            tok,
+            Ok(Token {
+                kind: TokenKind::Eof,
+                ..
+            })
+        ));
+    }
+
+    fn scan_token_kind(input: &str) -> TokenKind {
+        let mut scanner = Scanner::with_input(input);
+        let tok = scanner.scan_next_token().unwrap();
+        tok.kind
+    }
+
+    #[test]
+    fn scan_open_and_closed_brackets_punctuation() {
+        assert_eq!(scan_token_kind("("), TokenKind::Open(Bracket::Round));
+        assert_eq!(scan_token_kind(")"), TokenKind::Closed(Bracket::Round));
+
+        assert_eq!(scan_token_kind("["), TokenKind::Open(Bracket::Square));
+        assert_eq!(scan_token_kind("]"), TokenKind::Closed(Bracket::Square));
+
+        assert_eq!(scan_token_kind("{"), TokenKind::Open(Bracket::Curly));
+        assert_eq!(scan_token_kind("}"), TokenKind::Closed(Bracket::Curly));
     }
 }
