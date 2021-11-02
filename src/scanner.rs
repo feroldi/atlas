@@ -12,6 +12,48 @@ pub enum Bracket {
 pub enum TokenKind {
     Open(Bracket),
     Closed(Bracket),
+    Period,
+    Arrow,
+    PlusPlus,
+    MinusMinus,
+    Ampersand,
+    Star,
+    Plus,
+    Minus,
+    Tilde,
+    Exclamation,
+    Slash,
+    Percent,
+    LessLess,
+    GreaterGreater,
+    Less,
+    Greater,
+    LessEqual,
+    GreaterEqual,
+    EqualEqual,
+    ExclaEqual,
+    Caret,
+    Pipe,
+    AmpAmp,
+    PipePipe,
+    Question,
+    Colon,
+    Semicolon,
+    Ellipsis,
+    Equal,
+    StarEqual,
+    SlashEqual,
+    PercentEqual,
+    PlusEqual,
+    MinusEqual,
+    LessLessEqual,
+    GreaterGreaterEqual,
+    AmpEqual,
+    CaretEqual,
+    PipeEqual,
+    Comma,
+    Hash,
+    HashHash,
     Eof,
 }
 
@@ -60,7 +102,135 @@ impl Scanner<'_> {
             ']' => TokenKind::Closed(Bracket::Square),
             '{' => TokenKind::Open(Bracket::Curly),
             '}' => TokenKind::Closed(Bracket::Curly),
-
+            '.' => {
+                if self.consume_char_if('.') {
+                    if self.consume_char_if('.') {
+                        TokenKind::Ellipsis
+                    } else {
+                        todo!("diagnose error")
+                    }
+                } else {
+                    TokenKind::Period
+                }
+            }
+            '-' => {
+                if self.consume_char_if('>') {
+                    TokenKind::Arrow
+                } else if self.consume_char_if('-') {
+                    TokenKind::MinusMinus
+                } else if self.consume_char_if('=') {
+                    TokenKind::MinusEqual
+                } else {
+                    TokenKind::Minus
+                }
+            }
+            '+' => {
+                if self.consume_char_if('+') {
+                    TokenKind::PlusPlus
+                } else if self.consume_char_if('=') {
+                    TokenKind::PlusEqual
+                } else {
+                    TokenKind::Plus
+                }
+            }
+            '&' => {
+                if self.consume_char_if('&') {
+                    TokenKind::AmpAmp
+                } else if self.consume_char_if('=') {
+                    TokenKind::AmpEqual
+                } else {
+                    TokenKind::Ampersand
+                }
+            }
+            '*' => {
+                if self.consume_char_if('=') {
+                    TokenKind::StarEqual
+                } else {
+                    TokenKind::Star
+                }
+            }
+            '~' => TokenKind::Tilde,
+            '!' => {
+                if self.consume_char_if('=') {
+                    TokenKind::ExclaEqual
+                } else {
+                    TokenKind::Exclamation
+                }
+            }
+            '/' => {
+                if self.consume_char_if('=') {
+                    TokenKind::SlashEqual
+                } else {
+                    TokenKind::Slash
+                }
+            }
+            '%' => {
+                if self.consume_char_if('=') {
+                    TokenKind::PercentEqual
+                } else {
+                    TokenKind::Percent
+                }
+            }
+            '<' => {
+                if self.consume_char_if('<') {
+                    if self.consume_char_if('=') {
+                        TokenKind::LessLessEqual
+                    } else {
+                        TokenKind::LessLess
+                    }
+                } else if self.consume_char_if('=') {
+                    TokenKind::LessEqual
+                } else {
+                    TokenKind::Less
+                }
+            }
+            '>' => {
+                if self.consume_char_if('>') {
+                    if self.consume_char_if('=') {
+                        TokenKind::GreaterGreaterEqual
+                    } else {
+                        TokenKind::GreaterGreater
+                    }
+                } else if self.consume_char_if('=') {
+                    TokenKind::GreaterEqual
+                } else {
+                    TokenKind::Greater
+                }
+            }
+            '=' => {
+                if self.consume_char_if('=') {
+                    TokenKind::EqualEqual
+                } else {
+                    TokenKind::Equal
+                }
+            }
+            '^' => {
+                if self.consume_char_if('=') {
+                    TokenKind::CaretEqual
+                } else {
+                    TokenKind::Caret
+                }
+            }
+            '|' => {
+                if self.consume_char_if('|') {
+                    TokenKind::PipePipe
+                } else if self.consume_char_if('=') {
+                    TokenKind::PipeEqual
+                } else {
+                    TokenKind::Pipe
+                }
+            }
+            '?' => TokenKind::Question,
+            ':' => TokenKind::Colon,
+            ';' => TokenKind::Semicolon,
+            ',' => TokenKind::Comma,
+            '#' => {
+                if self.consume_char_if('#') {
+                    TokenKind::HashHash
+                } else {
+                    TokenKind::Hash
+                }
+            }
             // End of input.
             '\0' => return Ok(Token::eof()),
             _ => unimplemented!(),
@@ -86,8 +256,7 @@ impl Scanner<'_> {
         self.peek_char() == ch
     }
 
-    // TODO: Need not be pub.
-    pub fn consume_char_if(&mut self, ch: char) -> bool {
+    fn consume_char_if(&mut self, ch: char) -> bool {
         debug_assert!(ch != '\0', "cannot expect NUL char");
         let is_ch_peek = self.peek_char_is(ch);
         if is_ch_peek {
@@ -297,30 +466,71 @@ mod tests {
 
         let tok = scanner.scan_next_token();
 
-        assert!(matches!(
-            tok,
-            Ok(Token {
-                kind: TokenKind::Eof,
-                ..
-            })
-        ));
+        assert_eq!(tok, Ok(Token::eof()));
     }
 
-    fn scan_token_kind(input: &str) -> TokenKind {
-        let mut scanner = Scanner::with_input(input);
-        let tok = scanner.scan_next_token().unwrap();
-        tok.kind
+    macro_rules! test_token_kind {
+        ( $( $test_name:ident : $input:literal => $expected_kind:expr ,)* ) => {
+            $(
+                #[test]
+                fn $test_name() {
+                    let mut scanner = Scanner::with_input($input);
+                    let tok = scanner.scan_next_token();
+                    assert_eq!(tok, Ok(Token { kind: $expected_kind }));
+                    assert_eq!(scanner.peek_char(), '\0');
+                }
+            )*
+        }
     }
 
-    #[test]
-    fn scan_open_and_closed_brackets_punctuation() {
-        assert_eq!(scan_token_kind("("), TokenKind::Open(Bracket::Round));
-        assert_eq!(scan_token_kind(")"), TokenKind::Closed(Bracket::Round));
-
-        assert_eq!(scan_token_kind("["), TokenKind::Open(Bracket::Square));
-        assert_eq!(scan_token_kind("]"), TokenKind::Closed(Bracket::Square));
-
-        assert_eq!(scan_token_kind("{"), TokenKind::Open(Bracket::Curly));
-        assert_eq!(scan_token_kind("}"), TokenKind::Closed(Bracket::Curly));
+    test_token_kind! {
+        scan_open_round_bracket: "(" => TokenKind::Open(Bracket::Round),
+        scan_closed_round_bracket: ")" => TokenKind::Closed(Bracket::Round),
+        scan_open_square_bracket: "[" => TokenKind::Open(Bracket::Square),
+        scan_closed_square_bracket: "]" => TokenKind::Closed(Bracket::Square),
+        scan_open_curly_bracket: "{" => TokenKind::Open(Bracket::Curly),
+        scan_closed_curly_bracket: "}" => TokenKind::Closed(Bracket::Curly),
+        scan_period: "." => TokenKind::Period,
+        scan_arrow: "->" => TokenKind::Arrow,
+        scan_plus_plus: "++" => TokenKind::PlusPlus,
+        scan_minus_minus: "--" => TokenKind::MinusMinus,
+        scan_ampersand: "&" => TokenKind::Ampersand,
+        scan_star: "*" => TokenKind::Star,
+        scan_plus: "+" => TokenKind::Plus,
+        scan_minus: "-" => TokenKind::Minus,
+        scan_tilde: "~" => TokenKind::Tilde,
+        scan_exclamation: "!" => TokenKind::Exclamation,
+        scan_slash: "/" => TokenKind::Slash,
+        scan_percent: "%" => TokenKind::Percent,
+        scan_less_less: "<<" => TokenKind::LessLess,
+        scan_greater_greater: ">>" => TokenKind::GreaterGreater,
+        scan_less: "<" => TokenKind::Less,
+        scan_greater: ">" => TokenKind::Greater,
+        scan_less_equal: "<=" => TokenKind::LessEqual,
+        scan_greater_equal: ">=" => TokenKind::GreaterEqual,
+        scan_equal_equal: "==" => TokenKind::EqualEqual,
+        scan_excla_equal: "!=" => TokenKind::ExclaEqual,
+        scan_caret: "^" => TokenKind::Caret,
+        scan_pipe: "|" => TokenKind::Pipe,
+        scan_amp_amp: "&&" => TokenKind::AmpAmp,
+        scan_pipe_pipe: "||" => TokenKind::PipePipe,
+        scan_question: "?" => TokenKind::Question,
+        scan_colon: ":" => TokenKind::Colon,
+        scan_semicolon: ";" => TokenKind::Semicolon,
+        scan_ellipsis: "..." => TokenKind::Ellipsis,
+        scan_equal: "=" => TokenKind::Equal,
+        scan_star_equal: "*=" => TokenKind::StarEqual,
+        scan_slash_equal: "/=" => TokenKind::SlashEqual,
+        scan_percent_equal: "%=" => TokenKind::PercentEqual,
+        scan_plus_equal: "+=" => TokenKind::PlusEqual,
+        scan_minus_equal: "-=" => TokenKind::MinusEqual,
+        scan_less_less_equal: "<<=" => TokenKind::LessLessEqual,
+        scan_greater_greater_equal: ">>=" => TokenKind::GreaterGreaterEqual,
+        scan_amp_equal: "&=" => TokenKind::AmpEqual,
+        scan_caret_equal: "^=" => TokenKind::CaretEqual,
+        scan_pipe_equal: "|=" => TokenKind::PipeEqual,
+        scan_comma: "," => TokenKind::Comma,
+        scan_hash: "#" => TokenKind::Hash,
+        scan_hash_hash: "##" => TokenKind::HashHash,
     }
 }
