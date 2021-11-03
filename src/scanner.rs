@@ -103,12 +103,10 @@ impl Scanner<'_> {
             '{' => TokenKind::Open(Bracket::Curly),
             '}' => TokenKind::Closed(Bracket::Curly),
             '.' => {
-                if self.consume_char_if('.') {
-                    if self.consume_char_if('.') {
-                        TokenKind::Ellipsis
-                    } else {
-                        todo!("diagnose error")
-                    }
+                if self.peek_char_is('.') && self.lookahead_char_is(1, '.') {
+                    self.consume_char();
+                    self.consume_char();
+                    TokenKind::Ellipsis
                 } else {
                     TokenKind::Period
                 }
@@ -243,6 +241,18 @@ impl Scanner<'_> {
         self.peeked_char
     }
 
+    fn lookahead_char(&self, lookahead: usize) -> char {
+        if lookahead == 0 {
+            self.peek_char()
+        } else {
+            self.chars.clone().nth(lookahead - 1).unwrap_or('\0')
+        }
+    }
+
+    fn lookahead_char_is(&self, lookahead: usize, ch: char) -> bool {
+        self.lookahead_char(lookahead) == ch
+    }
+
     fn consume_char(&mut self) -> char {
         let old_peek = self.peek_char();
         self.peeked_char = self.chars.next().unwrap_or('\0');
@@ -349,6 +359,44 @@ mod tests {
         let _ = scanner.peek_char_is('b');
         let peek_after = scanner.peek_char();
         assert_eq!(peek_before, peek_after);
+    }
+
+    #[test]
+    fn lookahead_char_should_return_the_nth_char_from_current_position() {
+        let scanner = Scanner::with_input("abc");
+
+        assert_eq!(scanner.lookahead_char(0), 'a');
+        assert_eq!(scanner.lookahead_char(1), 'b');
+        assert_eq!(scanner.lookahead_char(2), 'c');
+        assert_eq!(scanner.lookahead_char(3), '\0');
+        assert_eq!(scanner.lookahead_char(50), '\0');
+    }
+
+    #[test]
+    fn lookahead_char_should_not_consume_chars() {
+        let scanner = Scanner::with_input("abc");
+
+        let _ = scanner.lookahead_char(2);
+
+        assert_eq!(scanner.peek_char(), 'a');
+    }
+
+    #[test]
+    fn lookahead_char_is_should_return_true_when_ch_is_the_looked_ahead_char() {
+        let scanner = Scanner::with_input("abc");
+
+        assert!(scanner.lookahead_char_is(0, 'a'));
+        assert!(!scanner.lookahead_char_is(0, 'b'));
+
+        assert!(scanner.lookahead_char_is(1, 'b'));
+        assert!(!scanner.lookahead_char_is(1, 'a'));
+
+        assert!(scanner.lookahead_char_is(2, 'c'));
+        assert!(!scanner.lookahead_char_is(2, 'b'));
+
+        assert!(scanner.lookahead_char_is(3, '\0'));
+        assert!(scanner.lookahead_char_is(50, '\0'));
+        assert!(!scanner.lookahead_char_is(3, 'c'));
     }
 
     #[test]
@@ -532,5 +580,26 @@ mod tests {
         scan_comma: "," => TokenKind::Comma,
         scan_hash: "#" => TokenKind::Hash,
         scan_hash_hash: "##" => TokenKind::HashHash,
+    }
+
+    #[test]
+    fn scan_adjacent_period() {
+        let mut scanner = Scanner::with_input("..");
+
+        assert_eq!(
+            scanner.scan_next_token(),
+            Ok(Token {
+                kind: TokenKind::Period
+            })
+        );
+
+        assert_eq!(
+            scanner.scan_next_token(),
+            Ok(Token {
+                kind: TokenKind::Period
+            })
+        );
+
+        assert_eq!(scanner.scan_next_token(), Ok(Token::eof()));
     }
 }
