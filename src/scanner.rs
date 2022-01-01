@@ -229,7 +229,6 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
-            // End of input.
             '\0' => return Ok(Token::eof()),
             _ => unimplemented!(),
         };
@@ -245,6 +244,7 @@ impl Scanner<'_> {
         if lookahead == 0 {
             self.peek_char()
         } else {
+            // TODO: This is wrong. Should advance chars by the C language rules.
             self.chars.clone().nth(lookahead - 1).unwrap_or('\0')
         }
     }
