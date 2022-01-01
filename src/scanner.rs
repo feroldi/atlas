@@ -76,7 +76,7 @@ pub enum ScanError {}
 pub struct Scanner<'chars> {
     chars: Chars<'chars>,
     peeked_char: char,
-    byte_pos_of_peeking_char: BytePos,
+    byte_pos_of_peeked_char: BytePos,
 }
 
 impl Scanner<'_> {
@@ -84,7 +84,7 @@ impl Scanner<'_> {
         let mut scanner = Scanner {
             chars: source.chars(),
             peeked_char: '\0',
-            byte_pos_of_peeking_char: BytePos::from_usize(0),
+            byte_pos_of_peeked_char: BytePos::from_usize(0),
         };
 
         // Consumes the first char by the C rules, making it available
@@ -257,7 +257,7 @@ impl Scanner<'_> {
         let old_peek = self.peek_char();
         self.peeked_char = self.chars.next().unwrap_or('\0');
         if old_peek != '\0' {
-            self.byte_pos_of_peeking_char += BytePos::from_usize(old_peek.len_utf8());
+            self.byte_pos_of_peeked_char += BytePos::from_usize(old_peek.len_utf8());
         }
         old_peek
     }
@@ -315,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    fn consume_char_should_advance_the_peeking_character_to_the_next_char() {
+    fn consume_char_should_advance_the_peeked_character_to_the_next_char() {
         let mut scanner = Scanner::with_input("abc");
         let _ = scanner.consume_char();
         assert_eq!(scanner.peek_char(), 'b');
@@ -352,7 +352,7 @@ mod tests {
     }
 
     #[test]
-    fn peek_char_is_should_not_advance_peeking_char() {
+    fn peek_char_is_should_not_advance_peeked_char() {
         let scanner = Scanner::with_input("abc");
         let peek_before = scanner.peek_char();
         let _ = scanner.peek_char_is('a');
@@ -419,7 +419,7 @@ mod tests {
     }
 
     #[test]
-    fn consume_char_if_should_advance_peeking_char_if_it_returns_true() {
+    fn consume_char_if_should_advance_peeked_char_if_it_returns_true() {
         let mut scanner = Scanner::with_input("abc");
         assert_eq!(scanner.peek_char(), 'a');
         assert!(scanner.consume_char_if('a'));
@@ -427,7 +427,7 @@ mod tests {
     }
 
     #[test]
-    fn consume_char_if_should_not_advance_peeking_char_if_it_returns_false() {
+    fn consume_char_if_should_not_advance_peeked_char_if_it_returns_false() {
         let mut scanner = Scanner::with_input("abc");
         assert_eq!(scanner.peek_char(), 'a');
         assert!(!scanner.consume_char_if('b'));
@@ -437,16 +437,16 @@ mod tests {
     #[test]
     fn current_peek_pos_is_initially_zero() {
         let scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.byte_pos_of_peeking_char, BytePos::from_usize(0));
+        assert_eq!(scanner.byte_pos_of_peeked_char, BytePos::from_usize(0));
     }
 
     #[test]
     fn current_peek_pos_remains_the_same_after_peeking_a_char() {
         let scanner = Scanner::with_input("abc");
 
-        let before_byte_pos = scanner.byte_pos_of_peeking_char;
+        let before_byte_pos = scanner.byte_pos_of_peeked_char;
         let _ = scanner.peek_char();
-        let after_byte_pos = scanner.byte_pos_of_peeking_char;
+        let after_byte_pos = scanner.byte_pos_of_peeked_char;
 
         assert_eq!(before_byte_pos, after_byte_pos);
     }
@@ -455,15 +455,15 @@ mod tests {
     fn current_peek_pos_advances_by_one_after_consuming_an_ascii_char() {
         let mut scanner = Scanner::with_input("abc");
 
-        let first_byte_pos = scanner.byte_pos_of_peeking_char;
+        let first_byte_pos = scanner.byte_pos_of_peeked_char;
 
         let _ = scanner.consume_char();
-        let second_byte_pos = scanner.byte_pos_of_peeking_char;
+        let second_byte_pos = scanner.byte_pos_of_peeked_char;
 
         assert_eq!(second_byte_pos, first_byte_pos + BytePos::from_usize(1));
 
         let _ = scanner.consume_char();
-        let third_byte_pos = scanner.byte_pos_of_peeking_char;
+        let third_byte_pos = scanner.byte_pos_of_peeked_char;
 
         assert_eq!(third_byte_pos, first_byte_pos + BytePos::from_usize(2));
     }
@@ -475,9 +475,9 @@ mod tests {
         for (source, byte_length) in source_input_and_length {
             let mut scanner = Scanner::with_input(source);
 
-            let first_byte_pos = scanner.byte_pos_of_peeking_char;
+            let first_byte_pos = scanner.byte_pos_of_peeked_char;
             let _ = scanner.consume_char();
-            let second_byte_pos = scanner.byte_pos_of_peeking_char;
+            let second_byte_pos = scanner.byte_pos_of_peeked_char;
 
             assert_eq!(
                 second_byte_pos,
@@ -490,18 +490,18 @@ mod tests {
     fn current_peek_pos_doesnt_advance_when_consuming_past_the_last_char() {
         let mut scanner = Scanner::with_input("abc");
 
-        let initial_byte_pos = scanner.byte_pos_of_peeking_char;
+        let initial_byte_pos = scanner.byte_pos_of_peeked_char;
 
         assert_eq!(scanner.consume_char(), 'a');
         assert_eq!(scanner.consume_char(), 'b');
         assert_eq!(scanner.consume_char(), 'c');
 
-        let last_byte_pos = scanner.byte_pos_of_peeking_char;
+        let last_byte_pos = scanner.byte_pos_of_peeked_char;
         assert_eq!(last_byte_pos, initial_byte_pos + BytePos::from_usize(3));
 
         assert_eq!(scanner.consume_char(), '\0');
 
-        let past_last_byte_pos = scanner.byte_pos_of_peeking_char;
+        let past_last_byte_pos = scanner.byte_pos_of_peeked_char;
         assert_eq!(
             past_last_byte_pos,
             initial_byte_pos + BytePos::from_usize(3)
