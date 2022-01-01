@@ -333,11 +333,19 @@ mod tests {
 
     #[test]
     fn lookahead_char_should_return_the_nth_char_from_current_position() {
-        let scanner = Scanner::with_input("abc");
+        let mut scanner = Scanner::with_input("abc");
 
         assert_eq!(scanner.lookahead_char(0), 'a');
         assert_eq!(scanner.lookahead_char(1), 'b');
         assert_eq!(scanner.lookahead_char(2), 'c');
+        assert_eq!(scanner.lookahead_char(3), '\0');
+        assert_eq!(scanner.lookahead_char(50), '\0');
+
+        scanner.consume_char();
+
+        assert_eq!(scanner.lookahead_char(0), 'b');
+        assert_eq!(scanner.lookahead_char(1), 'c');
+        assert_eq!(scanner.lookahead_char(2), '\0');
         assert_eq!(scanner.lookahead_char(3), '\0');
         assert_eq!(scanner.lookahead_char(50), '\0');
     }
