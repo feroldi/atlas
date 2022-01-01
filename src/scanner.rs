@@ -103,7 +103,7 @@ impl Scanner<'_> {
             '{' => TokenKind::Open(Bracket::Curly),
             '}' => TokenKind::Closed(Bracket::Curly),
             '.' => {
-                if self.peek_char_is('.') && self.lookahead_char_is(1, '.') {
+                if self.peek_char() == '.' && self.lookahead_char(1) == '.' {
                     self.consume_char();
                     self.consume_char();
                     TokenKind::Ellipsis
@@ -249,10 +249,6 @@ impl Scanner<'_> {
         }
     }
 
-    fn lookahead_char_is(&self, lookahead: usize, ch: char) -> bool {
-        self.lookahead_char(lookahead) == ch
-    }
-
     fn consume_char(&mut self) -> char {
         let old_peek = self.peek_char();
         self.peeked_char = self.chars.next().unwrap_or('\0');
@@ -262,13 +258,9 @@ impl Scanner<'_> {
         old_peek
     }
 
-    fn peek_char_is(&self, ch: char) -> bool {
-        self.peek_char() == ch
-    }
-
     fn consume_char_if(&mut self, ch: char) -> bool {
         debug_assert!(ch != '\0', "cannot expect NUL char");
-        let is_ch_peek = self.peek_char_is(ch);
+        let is_ch_peek = self.peek_char() == ch;
         if is_ch_peek {
             self.consume_char();
         }
@@ -340,28 +332,6 @@ mod tests {
     }
 
     #[test]
-    fn peek_char_is_should_return_true_when_arg_equals_peek_char() {
-        let scanner = Scanner::with_input("abc");
-        assert!(scanner.peek_char_is('a'));
-    }
-
-    #[test]
-    fn peek_char_is_should_return_false_when_arg_differs_from_peek_char() {
-        let scanner = Scanner::with_input("abc");
-        assert!(!scanner.peek_char_is('b'));
-    }
-
-    #[test]
-    fn peek_char_is_should_not_advance_peeked_char() {
-        let scanner = Scanner::with_input("abc");
-        let peek_before = scanner.peek_char();
-        let _ = scanner.peek_char_is('a');
-        let _ = scanner.peek_char_is('b');
-        let peek_after = scanner.peek_char();
-        assert_eq!(peek_before, peek_after);
-    }
-
-    #[test]
     fn lookahead_char_should_return_the_nth_char_from_current_position() {
         let scanner = Scanner::with_input("abc");
 
@@ -379,24 +349,6 @@ mod tests {
         let _ = scanner.lookahead_char(2);
 
         assert_eq!(scanner.peek_char(), 'a');
-    }
-
-    #[test]
-    fn lookahead_char_is_should_return_true_when_ch_is_the_looked_ahead_char() {
-        let scanner = Scanner::with_input("abc");
-
-        assert!(scanner.lookahead_char_is(0, 'a'));
-        assert!(!scanner.lookahead_char_is(0, 'b'));
-
-        assert!(scanner.lookahead_char_is(1, 'b'));
-        assert!(!scanner.lookahead_char_is(1, 'a'));
-
-        assert!(scanner.lookahead_char_is(2, 'c'));
-        assert!(!scanner.lookahead_char_is(2, 'b'));
-
-        assert!(scanner.lookahead_char_is(3, '\0'));
-        assert!(scanner.lookahead_char_is(50, '\0'));
-        assert!(!scanner.lookahead_char_is(3, 'c'));
     }
 
     #[test]
