@@ -1,5 +1,4 @@
-use crate::source_map::{BytePos, Pos};
-use std::str::Chars;
+use crate::char_stream::CharStream;
 
 #[derive(PartialEq, Debug)]
 pub enum Bracket {
@@ -74,28 +73,18 @@ impl Token {
 pub enum ScanError {}
 
 pub struct Scanner<'chars> {
-    chars: Chars<'chars>,
-    peeked_char: char,
-    byte_pos_of_peeked_char: BytePos,
+    chars: CharStream<'chars>,
 }
 
 impl Scanner<'_> {
-    pub fn with_input(source: &str) -> Scanner {
-        let mut scanner = Scanner {
-            chars: source.chars(),
-            peeked_char: '\0',
-            byte_pos_of_peeked_char: BytePos::from_usize(0),
-        };
-
-        // Consumes the first char by the C rules, making it available
-        // as the peeking char.
-        let _ = scanner.consume_char();
-
-        scanner
+    pub fn with_input(source_text: &str) -> Scanner {
+        Scanner {
+            chars: CharStream::with_text(source_text),
+        }
     }
 
     pub fn scan_next_token(&mut self) -> Result<Token, ScanError> {
-        let token_kind = match self.consume_char() {
+        let token_kind = match self.chars.consume() {
             '(' => TokenKind::Open(Bracket::Round),
             ')' => TokenKind::Closed(Bracket::Round),
             '[' => TokenKind::Open(Bracket::Square),
@@ -103,45 +92,45 @@ impl Scanner<'_> {
             '{' => TokenKind::Open(Bracket::Curly),
             '}' => TokenKind::Closed(Bracket::Curly),
             '.' => {
-                if self.peek_char() == '.' && self.lookahead_char(1) == '.' {
-                    self.consume_char();
-                    self.consume_char();
+                if self.chars.peek() == '.' && self.chars.lookahead(1) == '.' {
+                    self.chars.consume();
+                    self.chars.consume();
                     TokenKind::Ellipsis
                 } else {
                     TokenKind::Period
                 }
             }
             '-' => {
-                if self.consume_char_if('>') {
+                if self.chars.try_consume('>') {
                     TokenKind::Arrow
-                } else if self.consume_char_if('-') {
+                } else if self.chars.try_consume('-') {
                     TokenKind::MinusMinus
-                } else if self.consume_char_if('=') {
+                } else if self.chars.try_consume('=') {
                     TokenKind::MinusEqual
                 } else {
                     TokenKind::Minus
                 }
             }
             '+' => {
-                if self.consume_char_if('+') {
+                if self.chars.try_consume('+') {
                     TokenKind::PlusPlus
-                } else if self.consume_char_if('=') {
+                } else if self.chars.try_consume('=') {
                     TokenKind::PlusEqual
                 } else {
                     TokenKind::Plus
                 }
             }
             '&' => {
-                if self.consume_char_if('&') {
+                if self.chars.try_consume('&') {
                     TokenKind::AmpAmp
-                } else if self.consume_char_if('=') {
+                } else if self.chars.try_consume('=') {
                     TokenKind::AmpEqual
                 } else {
                     TokenKind::Ampersand
                 }
             }
             '*' => {
-                if self.consume_char_if('=') {
+                if self.chars.try_consume('=') {
                     TokenKind::StarEqual
                 } else {
                     TokenKind::Star
@@ -149,70 +138,70 @@ impl Scanner<'_> {
             }
             '~' => TokenKind::Tilde,
             '!' => {
-                if self.consume_char_if('=') {
+                if self.chars.try_consume('=') {
                     TokenKind::ExclaEqual
                 } else {
                     TokenKind::Exclamation
                 }
             }
             '/' => {
-                if self.consume_char_if('=') {
+                if self.chars.try_consume('=') {
                     TokenKind::SlashEqual
                 } else {
                     TokenKind::Slash
                 }
             }
             '%' => {
-                if self.consume_char_if('=') {
+                if self.chars.try_consume('=') {
                     TokenKind::PercentEqual
                 } else {
                     TokenKind::Percent
                 }
             }
             '<' => {
-                if self.consume_char_if('<') {
-                    if self.consume_char_if('=') {
+                if self.chars.try_consume('<') {
+                    if self.chars.try_consume('=') {
                         TokenKind::LessLessEqual
                     } else {
                         TokenKind::LessLess
                     }
-                } else if self.consume_char_if('=') {
+                } else if self.chars.try_consume('=') {
                     TokenKind::LessEqual
                 } else {
                     TokenKind::Less
                 }
             }
             '>' => {
-                if self.consume_char_if('>') {
-                    if self.consume_char_if('=') {
+                if self.chars.try_consume('>') {
+                    if self.chars.try_consume('=') {
                         TokenKind::GreaterGreaterEqual
                     } else {
                         TokenKind::GreaterGreater
                     }
-                } else if self.consume_char_if('=') {
+                } else if self.chars.try_consume('=') {
                     TokenKind::GreaterEqual
                 } else {
                     TokenKind::Greater
                 }
             }
             '=' => {
-                if self.consume_char_if('=') {
+                if self.chars.try_consume('=') {
                     TokenKind::EqualEqual
                 } else {
                     TokenKind::Equal
                 }
             }
             '^' => {
-                if self.consume_char_if('=') {
+                if self.chars.try_consume('=') {
                     TokenKind::CaretEqual
                 } else {
                     TokenKind::Caret
                 }
             }
             '|' => {
-                if self.consume_char_if('|') {
+                if self.chars.try_consume('|') {
                     TokenKind::PipePipe
-                } else if self.consume_char_if('=') {
+                } else if self.chars.try_consume('=') {
                     TokenKind::PipeEqual
                 } else {
                     TokenKind::Pipe
@@ -223,7 +212,7 @@ impl Scanner<'_> {
             ';' => TokenKind::Semicolon,
             ',' => TokenKind::Comma,
             '#' => {
-                if self.consume_char_if('#') {
+                if self.chars.try_consume('#') {
                     TokenKind::HashHash
                 } else {
                     TokenKind::Hash
@@ -235,238 +224,12 @@ impl Scanner<'_> {
 
         Ok(Token { kind: token_kind })
     }
-
-    fn peek_char(&self) -> char {
-        self.peeked_char
-    }
-
-    fn lookahead_char(&self, lookahead: usize) -> char {
-        if lookahead == 0 {
-            self.peek_char()
-        } else {
-            // TODO: This is wrong. Should advance chars by the C language rules.
-            self.chars.clone().nth(lookahead - 1).unwrap_or('\0')
-        }
-    }
-
-    fn consume_char(&mut self) -> char {
-        let old_peek = self.peek_char();
-        self.peeked_char = self.chars.next().unwrap_or('\0');
-        if old_peek != '\0' {
-            self.byte_pos_of_peeked_char += BytePos::from_usize(old_peek.len_utf8());
-        }
-        old_peek
-    }
-
-    fn consume_char_if(&mut self, ch: char) -> bool {
-        debug_assert!(ch != '\0', "cannot expect NUL char");
-        let is_ch_peek = self.peek_char() == ch;
-        if is_ch_peek {
-            self.consume_char();
-        }
-        is_ch_peek
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Bracket, Scanner, Token, TokenKind};
-    use crate::source_map::{BytePos, Pos};
-
-    #[test]
-    fn peek_char_should_return_nul_when_input_is_empty() {
-        let scanner = Scanner::with_input("");
-        assert_eq!(scanner.peek_char(), '\0');
-    }
-
-    #[test]
-    fn peek_char_should_return_first_char_from_input_when_it_is_not_empty() {
-        let scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.peek_char(), 'a');
-    }
-
-    #[test]
-    fn multiple_calls_to_peek_char_should_return_the_same_char() {
-        let scanner = Scanner::with_input("abc");
-
-        assert_eq!(scanner.peek_char(), 'a');
-        assert_eq!(scanner.peek_char(), 'a');
-        assert_eq!(scanner.peek_char(), 'a');
-    }
-
-    #[test]
-    fn consume_char_should_return_nul_when_input_is_empty() {
-        let mut scanner = Scanner::with_input("");
-        assert_eq!(scanner.consume_char(), '\0');
-    }
-
-    #[test]
-    fn consume_char_should_return_first_char_from_input_when_it_is_not_empty() {
-        let mut scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.consume_char(), 'a');
-    }
-
-    #[test]
-    fn consume_char_should_advance_the_peeked_character_to_the_next_char() {
-        let mut scanner = Scanner::with_input("abc");
-        let _ = scanner.consume_char();
-        assert_eq!(scanner.peek_char(), 'b');
-    }
-
-    #[test]
-    fn consume_char_should_return_nul_when_all_chars_have_been_consume_chared() {
-        let mut scanner = Scanner::with_input("abc");
-        let _ = scanner.consume_char();
-        let _ = scanner.consume_char();
-        let _ = scanner.consume_char();
-        assert_eq!(scanner.consume_char(), '\0');
-    }
-
-    #[test]
-    fn peek_char_should_return_nul_when_all_chars_have_been_consume_chared() {
-        let mut scanner = Scanner::with_input("abc");
-        let _ = scanner.consume_char();
-        let _ = scanner.consume_char();
-        let _ = scanner.consume_char();
-        assert_eq!(scanner.peek_char(), '\0');
-    }
-
-    #[test]
-    fn lookahead_char_should_return_the_nth_char_from_current_position() {
-        let mut scanner = Scanner::with_input("abc");
-
-        assert_eq!(scanner.lookahead_char(0), 'a');
-        assert_eq!(scanner.lookahead_char(1), 'b');
-        assert_eq!(scanner.lookahead_char(2), 'c');
-        assert_eq!(scanner.lookahead_char(3), '\0');
-        assert_eq!(scanner.lookahead_char(50), '\0');
-
-        scanner.consume_char();
-
-        assert_eq!(scanner.lookahead_char(0), 'b');
-        assert_eq!(scanner.lookahead_char(1), 'c');
-        assert_eq!(scanner.lookahead_char(2), '\0');
-        assert_eq!(scanner.lookahead_char(3), '\0');
-        assert_eq!(scanner.lookahead_char(50), '\0');
-    }
-
-    #[test]
-    fn lookahead_char_should_not_consume_chars() {
-        let scanner = Scanner::with_input("abc");
-
-        let _ = scanner.lookahead_char(2);
-
-        assert_eq!(scanner.peek_char(), 'a');
-    }
-
-    #[test]
-    fn consume_char_if_should_return_true_when_arg_equals_peek_char() {
-        let mut scanner = Scanner::with_input("abc");
-        assert!(scanner.consume_char_if('a'));
-    }
-
-    #[test]
-    fn consume_char_if_should_return_false_when_arg_differs_from_peek_char() {
-        let mut scanner = Scanner::with_input("abc");
-        assert!(!scanner.consume_char_if('b'));
-    }
-
-    #[test]
-    #[should_panic(expected = "cannot expect NUL char")]
-    fn consume_char_if_should_panic_when_expected_char_is_nul() {
-        let mut scanner = Scanner::with_input("abc");
-        let _ = scanner.consume_char_if('\0');
-    }
-
-    #[test]
-    fn consume_char_if_should_advance_peeked_char_if_it_returns_true() {
-        let mut scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.peek_char(), 'a');
-        assert!(scanner.consume_char_if('a'));
-        assert_eq!(scanner.peek_char(), 'b');
-    }
-
-    #[test]
-    fn consume_char_if_should_not_advance_peeked_char_if_it_returns_false() {
-        let mut scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.peek_char(), 'a');
-        assert!(!scanner.consume_char_if('b'));
-        assert_eq!(scanner.peek_char(), 'a');
-    }
-
-    #[test]
-    fn current_peek_pos_is_initially_zero() {
-        let scanner = Scanner::with_input("abc");
-        assert_eq!(scanner.byte_pos_of_peeked_char, BytePos::from_usize(0));
-    }
-
-    #[test]
-    fn current_peek_pos_remains_the_same_after_peeking_a_char() {
-        let scanner = Scanner::with_input("abc");
-
-        let before_byte_pos = scanner.byte_pos_of_peeked_char;
-        let _ = scanner.peek_char();
-        let after_byte_pos = scanner.byte_pos_of_peeked_char;
-
-        assert_eq!(before_byte_pos, after_byte_pos);
-    }
-
-    #[test]
-    fn current_peek_pos_advances_by_one_after_consuming_an_ascii_char() {
-        let mut scanner = Scanner::with_input("abc");
-
-        let first_byte_pos = scanner.byte_pos_of_peeked_char;
-
-        let _ = scanner.consume_char();
-        let second_byte_pos = scanner.byte_pos_of_peeked_char;
-
-        assert_eq!(second_byte_pos, first_byte_pos + BytePos::from_usize(1));
-
-        let _ = scanner.consume_char();
-        let third_byte_pos = scanner.byte_pos_of_peeked_char;
-
-        assert_eq!(third_byte_pos, first_byte_pos + BytePos::from_usize(2));
-    }
-
-    #[test]
-    fn current_peek_pos_advances_by_the_char_length_after_consuming_a_utf8_char() {
-        let source_input_and_length = [("\u{80}", 2), ("\u{800}", 3), ("\u{10000}", 4)];
-
-        for (source, byte_length) in source_input_and_length {
-            let mut scanner = Scanner::with_input(source);
-
-            let first_byte_pos = scanner.byte_pos_of_peeked_char;
-            let _ = scanner.consume_char();
-            let second_byte_pos = scanner.byte_pos_of_peeked_char;
-
-            assert_eq!(
-                second_byte_pos,
-                first_byte_pos + BytePos::from_usize(byte_length)
-            );
-        }
-    }
-
-    #[test]
-    fn current_peek_pos_doesnt_advance_when_consuming_past_the_last_char() {
-        let mut scanner = Scanner::with_input("abc");
-
-        let initial_byte_pos = scanner.byte_pos_of_peeked_char;
-
-        assert_eq!(scanner.consume_char(), 'a');
-        assert_eq!(scanner.consume_char(), 'b');
-        assert_eq!(scanner.consume_char(), 'c');
-
-        let last_byte_pos = scanner.byte_pos_of_peeked_char;
-        assert_eq!(last_byte_pos, initial_byte_pos + BytePos::from_usize(3));
-
-        assert_eq!(scanner.consume_char(), '\0');
-
-        let past_last_byte_pos = scanner.byte_pos_of_peeked_char;
-        assert_eq!(
-            past_last_byte_pos,
-            initial_byte_pos + BytePos::from_usize(3)
-        );
-    }
+    use crate::char_stream::CharStream;
 
     #[test]
     fn scanning_an_empty_input_returns_an_eof_token() {
@@ -485,7 +248,7 @@ mod tests {
                     let mut scanner = Scanner::with_input($input);
                     let tok = scanner.scan_next_token();
                     assert_eq!(tok, Ok(Token { kind: $expected_kind }));
-                    assert_eq!(scanner.peek_char(), '\0');
+                    assert_eq!(scanner.chars.peek(), CharStream::EOF_CHAR);
                 }
             )*
         }

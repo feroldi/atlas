@@ -32,6 +32,12 @@ impl AddAssign for BytePos {
     }
 }
 
+impl std::convert::From<usize> for BytePos {
+    fn from(value: usize) -> BytePos {
+        BytePos::from_usize(value)
+    }
+}
+
 fn calc_lines_positions(source_text: &str) -> Vec<BytePos> {
     std::iter::once(0usize)
         .chain(source_text.match_indices('\n').map(|(idx, _)| idx + 1))
