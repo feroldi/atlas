@@ -70,7 +70,7 @@ impl Token {
 }
 
 #[derive(PartialEq, Debug)]
-pub enum ScanError {}
+pub enum ScanDiag {}
 
 pub struct Scanner<'chars> {
     chars: CharStream<'chars>,
@@ -83,7 +83,7 @@ impl Scanner<'_> {
         }
     }
 
-    pub fn scan_next_token(&mut self) -> Result<Token, ScanError> {
+    pub fn scan_next_token(&mut self) -> Result<Token, ScanDiag> {
         let token_kind = match self.chars.consume() {
             '(' => TokenKind::Open(Bracket::Round),
             ')' => TokenKind::Closed(Bracket::Round),
