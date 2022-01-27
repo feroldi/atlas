@@ -62,11 +62,9 @@ pub struct Token {
 }
 
 impl Token {
-    fn eof() -> Token {
-        Token {
-            kind: TokenKind::Eof,
-        }
-    }
+    const EOF: Token = Token {
+        kind: TokenKind::Eof,
+    };
 }
 
 #[derive(PartialEq, Debug)]
@@ -218,7 +216,7 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
-            '\0' => return Ok(Token::eof()),
+            '\0' => return Ok(Token::EOF),
             _ => unimplemented!(),
         };
 
@@ -237,7 +235,7 @@ mod tests {
 
         let tok = scanner.scan_next_token();
 
-        assert_eq!(tok, Ok(Token::eof()));
+        assert_eq!(tok, Ok(Token::EOF));
     }
 
     macro_rules! test_token_kind {
@@ -323,6 +321,6 @@ mod tests {
             })
         );
 
-        assert_eq!(scanner.scan_next_token(), Ok(Token::eof()));
+        assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
     }
 }
