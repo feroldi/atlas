@@ -83,6 +83,7 @@ impl Scanner<'_> {
 
     pub fn scan_next_token(&mut self) -> Result<Token, ScanDiag> {
         let token_kind = match self.chars.consume() {
+            CharStream::EOF_CHAR => return Ok(Token::EOF),
             '(' => TokenKind::Open(Bracket::Round),
             ')' => TokenKind::Closed(Bracket::Round),
             '[' => TokenKind::Open(Bracket::Square),
@@ -216,7 +217,6 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
-            '\0' => return Ok(Token::EOF),
             _ => unimplemented!(),
         };
 
