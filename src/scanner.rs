@@ -232,7 +232,7 @@ mod tests {
     use crate::char_stream::CharStream;
 
     #[test]
-    fn scanning_an_empty_input_returns_an_eof_token() {
+    fn scanning_an_empty_input_should_return_an_eof_token() {
         let mut scanner = Scanner::with_input("");
 
         let tok = scanner.scan_next_token();
@@ -306,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn scan_adjacent_period() {
+    fn two_adjacent_period_chars_should_be_scanned_as_two_separate_period_operators() {
         let mut scanner = Scanner::with_input("..");
 
         assert_eq!(
