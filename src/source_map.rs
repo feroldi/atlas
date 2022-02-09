@@ -1,5 +1,57 @@
 use std::ops::{Add, AddAssign};
 
+// This is an exclusive text range as in [start, end).
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct Span {
+    pub(crate) start: BytePos,
+    pub(crate) end: BytePos,
+}
+
+impl Span {
+    const EMPTY: Span = Span {
+        start: BytePos::EMPTY,
+        end: BytePos::EMPTY,
+    };
+
+    // TODO: Test.
+    pub(crate) fn from_raw_pos(start: usize, end: usize) -> Span {
+        Span {
+            start: BytePos::from_usize(start),
+            end: BytePos::from_usize(end),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct Spannable<T> {
+    value: T,
+    span: Span,
+}
+
+impl<T> Spannable<T> {
+    // TODO: Test.
+    pub(crate) const fn with_empty_span(value: T) -> Spannable<T> {
+        Spannable {
+            value,
+            span: Span::EMPTY,
+        }
+    }
+
+    // TODO: Test.
+    pub(crate) fn with_span(value: T, span: Span) -> Spannable<T> {
+        Spannable { value, span }
+    }
+}
+
+// TODO: Test.
+impl<T> std::ops::Deref for Spannable<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        &self.value
+    }
+}
+
 pub trait Pos: Sized + Add + AddAssign {
     fn from_usize(value: usize) -> Self;
     fn to_usize(self) -> usize;
@@ -7,6 +59,10 @@ pub trait Pos: Sized + Add + AddAssign {
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct BytePos(usize);
+
+impl BytePos {
+    const EMPTY: BytePos = BytePos(usize::MAX);
+}
 
 impl Pos for BytePos {
     fn from_usize(value: usize) -> BytePos {
@@ -32,6 +88,7 @@ impl AddAssign for BytePos {
     }
 }
 
+// TODO: Write tests.
 impl std::convert::From<usize> for BytePos {
     fn from(value: usize) -> BytePos {
         BytePos::from_usize(value)

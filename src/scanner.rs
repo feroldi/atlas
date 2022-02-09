@@ -1,4 +1,5 @@
 use crate::char_stream::CharStream;
+use crate::source_map::{Span, Spannable};
 
 #[derive(PartialEq, Debug)]
 pub enum Bracket {
@@ -53,6 +54,7 @@ pub enum TokenKind {
     Comma,
     Hash,
     HashHash,
+    Identifier,
     KwAuto,
     KwBreak,
     KwCase,
@@ -106,11 +108,12 @@ pub struct Token {
 }
 
 impl Token {
-    const EOF: Token = Token {
+    const EOF: Spannable<Token> = Spannable::with_empty_span(Token {
         kind: TokenKind::Eof,
-    };
+    });
 }
 
+// TODO: Should be SyntaxDiag
 #[derive(PartialEq, Debug)]
 pub enum ScanDiag {}
 
@@ -125,7 +128,13 @@ impl Scanner<'_> {
         }
     }
 
-    pub fn scan_next_token(&mut self) -> Result<Token, ScanDiag> {
+    pub fn scan_next_token(&mut self) -> Result<Spannable<Token>, ScanDiag> {
+        while is_whitespace_char(self.chars.peek()) {
+            self.chars.consume();
+        }
+
+        let span_start = self.chars.peek_byte_pos();
+
         let token_kind = match self.chars.consume() {
             CharStream::EOF_CHAR => return Ok(Token::EOF),
             '(' => TokenKind::Open(Bracket::Round),
@@ -261,18 +270,26 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
-            first_char @ ('a'..='w' | '_') => self.scan_identifier_or_keyword(first_char),
+            first_char @ ('a'..='z' | 'A'..='Z' | '_') => {
+                self.scan_identifier_or_keyword(first_char)
+            }
             _ => unimplemented!(),
         };
 
-        Ok(Token { kind: token_kind })
+        let span_end = self.chars.peek_byte_pos();
+        let token_span = Span {
+            start: span_start,
+            end: span_end,
+        };
+
+        Ok(Spannable::with_span(Token { kind: token_kind }, token_span))
     }
 
     fn scan_identifier_or_keyword(&mut self, first_char: char) -> TokenKind {
         let mut lexeme_buffer = String::with_capacity(16);
         lexeme_buffer.push(first_char);
 
-        while self.chars.peek() != CharStream::EOF_CHAR {
+        while let '_' | 'a'..='z' | 'A'..='Z' | '0'..='9' = self.chars.peek() {
             lexeme_buffer.push(self.chars.consume());
         }
 
@@ -321,23 +338,39 @@ impl Scanner<'_> {
             "_Noreturn" => TokenKind::KwNoreturn,
             "_Static_assert" => TokenKind::KwStaticAssert,
             "_Thread_local" => TokenKind::KwThreadLocal,
-            _ => unimplemented!("parse as an identifier"),
+            _ => TokenKind::Identifier,
         }
     }
+}
+
+// TODO: Test.
+fn is_whitespace_char(ch: char) -> bool {
+    const SPACE: char = ' ';
+    const TAB: char = '\t';
+    const NEWLINE: char = '\n';
+    const CARRIAGE_RETURN: char = '\r';
+    const VERTICAL_TAB: char = '\x0B';
+    const FORM_FEED: char = '\x0C';
+
+    matches!(
+        ch,
+        SPACE | TAB | NEWLINE | CARRIAGE_RETURN | VERTICAL_TAB | FORM_FEED,
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::{Bracket, Scanner, Token, TokenKind};
     use crate::char_stream::CharStream;
+    use crate::source_map::{Span, Spannable};
 
     #[test]
     fn scanning_an_empty_input_should_return_an_eof_token() {
         let mut scanner = Scanner::with_input("");
 
-        let tok = scanner.scan_next_token();
+        let token = scanner.scan_next_token();
 
-        assert_eq!(tok, Ok(Token::EOF));
+        assert_eq!(token, Ok(Token::EOF));
     }
 
     macro_rules! test_token_kind {
@@ -346,8 +379,12 @@ mod tests {
                 #[test]
                 fn $test_name() {
                     let mut scanner = Scanner::with_input($input);
-                    let tok = scanner.scan_next_token();
-                    assert_eq!(tok, Ok(Token { kind: $expected_kind }));
+                    let token = scanner.scan_next_token().unwrap();
+
+                    let expected_token = Token { kind: $expected_kind };
+                    let expected_span = Span::from_raw_pos(0, $input.len());
+
+                    assert_eq!(token, Spannable::with_span(expected_token, expected_span));
                     assert_eq!(scanner.chars.peek(), CharStream::EOF_CHAR);
                 }
             )*
@@ -454,19 +491,153 @@ mod tests {
         let mut scanner = Scanner::with_input("..");
 
         assert_eq!(
-            scanner.scan_next_token(),
-            Ok(Token {
-                kind: TokenKind::Period
-            })
+            scanner.scan_next_token().unwrap(),
+            Spannable::with_span(
+                Token {
+                    kind: TokenKind::Period
+                },
+                Span::from_raw_pos(0, 1),
+            )
         );
 
         assert_eq!(
-            scanner.scan_next_token(),
-            Ok(Token {
-                kind: TokenKind::Period
-            })
+            scanner.scan_next_token().unwrap(),
+            Spannable::with_span(
+                Token {
+                    kind: TokenKind::Period
+                },
+                Span::from_raw_pos(1, 2),
+            )
         );
 
         assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+    }
+
+    #[test]
+    fn sequence_of_nondigit_identifier_chars_should_be_scanned_as_identifier() {
+        let mut scanner =
+            Scanner::with_input("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        let num_nondigits = 1 + 26 * 2;
+
+        let token = scanner.scan_next_token().unwrap();
+
+        assert_eq!(
+            token,
+            Spannable::with_span(
+                Token {
+                    kind: TokenKind::Identifier
+                },
+                Span::from_raw_pos(0, num_nondigits),
+            )
+        );
+    }
+
+    #[test]
+    fn identifiers_can_be_made_of_only_one_nondigit_identifier_char() {
+        let nondigit_chars = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".chars();
+
+        for nondigit_char in nondigit_chars {
+            let text_input = format!("{}", nondigit_char);
+            let mut scanner = Scanner::with_input(&text_input);
+
+            let token = scanner.scan_next_token();
+
+            let expected_token = Spannable::with_span(
+                Token {
+                    kind: TokenKind::Identifier,
+                },
+                Span::from_raw_pos(0, 1),
+            );
+
+            assert_eq!(
+                token,
+                Ok(expected_token),
+                "scanned input: `{}`",
+                nondigit_char
+            );
+        }
+    }
+
+    #[test]
+    fn nondigit_char_followed_by_digit_chars_should_be_scanned_as_identifier() {
+        let nondigit_chars = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".chars();
+        let digits = "0123456789";
+
+        for nondigit_char in nondigit_chars {
+            // Note that the last whitespace in the input is important to make this
+            // test check that the scanner indeed consumes digits, otherwise it could
+            // just scan until EOF, which isn't what we want.
+            let text_input = format!("{}{} ", nondigit_char, digits);
+            let mut scanner = Scanner::with_input(&text_input);
+
+            let token = scanner.scan_next_token();
+
+            let expected_token = Spannable::with_span(
+                Token {
+                    kind: TokenKind::Identifier,
+                },
+                Span::from_raw_pos(0, 1 + digits.len()),
+            );
+
+            assert_eq!(token, Ok(expected_token), "scanned input: `{}`", text_input);
+        }
+    }
+
+    #[test]
+    fn scanning_of_identifiers_should_stop_at_a_non_identifier_char() {
+        let mut scanner = Scanner::with_input("foo1 bar2");
+
+        let token_foo = scanner.scan_next_token().unwrap();
+
+        assert_eq!(
+            token_foo,
+            Spannable::with_span(
+                Token {
+                    kind: TokenKind::Identifier
+                },
+                Span::from_raw_pos(0, 4)
+            )
+        );
+
+        let token_bar = scanner.scan_next_token().unwrap();
+
+        assert_eq!(
+            token_bar,
+            Spannable::with_span(
+                Token {
+                    kind: TokenKind::Identifier
+                },
+                Span::from_raw_pos(5, 9)
+            )
+        );
+    }
+
+    // TODO: Test that multiple calls to scan_next_token ignores whitespace.
+    #[test]
+    fn whitespace_at_the_start_of_the_input_should_be_ignored_when_scanned() {
+        let space = ' ';
+        let tab = '\t';
+        let newline = '\n';
+        let carriage_return = '\r';
+        let vertical_tab = '\x0B';
+        let form_feed = '\x0C';
+
+        let input_text = format!(
+            "{}{}{}{}{}{}foo",
+            space, tab, newline, carriage_return, vertical_tab, form_feed
+        );
+        let mut scanner = Scanner::with_input(&input_text);
+
+        let token = scanner.scan_next_token().unwrap();
+
+        assert_eq!(
+            token,
+            Spannable::with_span(
+                Token {
+                    kind: TokenKind::Identifier
+                },
+                Span::from_raw_pos(6, 9)
+            )
+        );
     }
 }

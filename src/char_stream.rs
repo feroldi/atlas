@@ -30,7 +30,7 @@ impl CharStream<'_> {
         self.peeked_char
     }
 
-    fn peek_byte_pos(&self) -> BytePos {
+    pub(crate) fn peek_byte_pos(&self) -> BytePos {
         self.byte_pos_of_peeked_char
     }
 
