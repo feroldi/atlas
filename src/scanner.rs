@@ -1,5 +1,6 @@
 use crate::char_stream::CharStream;
 use crate::source_map::{Span, Spannable};
+use std::assert_matches::debug_assert_matches;
 
 #[derive(PartialEq, Debug)]
 pub enum Bracket {
@@ -286,6 +287,8 @@ impl Scanner<'_> {
     }
 
     fn scan_identifier_or_keyword(&mut self, first_char: char) -> TokenKind {
+        debug_assert_matches!(first_char, 'a'..='z' | 'A'..='Z' | '_');
+
         let mut lexeme_buffer = String::with_capacity(16);
         lexeme_buffer.push(first_char);
 
