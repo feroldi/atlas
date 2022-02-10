@@ -271,8 +271,8 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
-            first_char @ ('a'..='z' | 'A'..='Z' | '_') => {
-                self.scan_identifier_or_keyword(first_char)
+            ident_head @ ('a'..='z' | 'A'..='Z' | '_') => {
+                self.scan_identifier_or_keyword(ident_head)
             }
             _ => unimplemented!(),
         };
@@ -286,11 +286,11 @@ impl Scanner<'_> {
         Ok(Spannable::with_span(Token { kind: token_kind }, token_span))
     }
 
-    fn scan_identifier_or_keyword(&mut self, first_char: char) -> TokenKind {
-        debug_assert_matches!(first_char, 'a'..='z' | 'A'..='Z' | '_');
+    fn scan_identifier_or_keyword(&mut self, ident_head: char) -> TokenKind {
+        debug_assert_matches!(ident_head, 'a'..='z' | 'A'..='Z' | '_');
 
         let mut lexeme_buffer = String::with_capacity(16);
-        lexeme_buffer.push(first_char);
+        lexeme_buffer.push(ident_head);
 
         while let '_' | 'a'..='z' | 'A'..='Z' | '0'..='9' = self.chars.peek() {
             lexeme_buffer.push(self.chars.consume());
@@ -346,18 +346,17 @@ impl Scanner<'_> {
     }
 }
 
-// TODO: Test.
 fn is_whitespace_char(ch: char) -> bool {
     const SPACE: char = ' ';
     const TAB: char = '\t';
-    const NEWLINE: char = '\n';
+    const LINE_FEED: char = '\n';
     const CARRIAGE_RETURN: char = '\r';
-    const VERTICAL_TAB: char = '\x0B';
-    const FORM_FEED: char = '\x0C';
+    const VERTICAL_TAB: char = '\x0b';
+    const FORM_FEED: char = '\x0c';
 
     matches!(
         ch,
-        SPACE | TAB | NEWLINE | CARRIAGE_RETURN | VERTICAL_TAB | FORM_FEED,
+        SPACE | TAB | LINE_FEED | CARRIAGE_RETURN | VERTICAL_TAB | FORM_FEED,
     )
 }
 
@@ -620,14 +619,14 @@ mod tests {
     fn whitespace_at_the_start_of_the_input_should_be_ignored_when_scanned() {
         let space = ' ';
         let tab = '\t';
-        let newline = '\n';
+        let line_feed = '\n';
         let carriage_return = '\r';
-        let vertical_tab = '\x0B';
-        let form_feed = '\x0C';
+        let vertical_tab = '\x0b';
+        let form_feed = '\x0c';
 
         let input_text = format!(
             "{}{}{}{}{}{}foo",
-            space, tab, newline, carriage_return, vertical_tab, form_feed
+            space, tab, line_feed, carriage_return, vertical_tab, form_feed
         );
         let mut scanner = Scanner::with_input(&input_text);
 
@@ -642,5 +641,24 @@ mod tests {
                 Span::from_raw_pos(6, 9)
             )
         );
+    }
+
+    #[test]
+    fn is_whitespace_char_should_return_true_for_c_lang_whitespace_chars_and_false_otherwise() {
+        use super::is_whitespace_char;
+
+        assert!(is_whitespace_char(' '));
+        assert!(is_whitespace_char('\t'));
+        assert!(is_whitespace_char('\n'));
+        assert!(is_whitespace_char('\r'));
+        assert!(is_whitespace_char('\x0b'));
+        assert!(is_whitespace_char('\x0c'));
+
+        let all_ascii_non_whitespaces =
+            (0u8..128).filter(|ch| !matches!(ch, b' ' | b'\t' | b'\n' | b'\r' | b'\x0b' | b'\x0c'));
+
+        for ch in all_ascii_non_whitespaces {
+            assert!(!is_whitespace_char(ch as char), "ASCII code is: `{}`", ch);
+        }
     }
 }
