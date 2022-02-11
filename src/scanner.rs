@@ -373,7 +373,6 @@ fn is_whitespace_char(ch: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{Bracket, Scanner, Token, TokenKind};
-    use crate::char_stream::CharStream;
     use crate::source_map::{Span, Spannable};
 
     #[test]
@@ -386,18 +385,20 @@ mod tests {
     }
 
     macro_rules! test_token_kind {
-        ( $( $test_name:ident : $input:literal => $expected_kind:expr ,)* ) => {
+        ( $( $test_name:ident : $input_text:literal => $expected_kind:expr ,)* ) => {
             $(
                 #[test]
                 fn $test_name() {
-                    let mut scanner = Scanner::with_input($input);
-                    let token = scanner.scan_next_token().unwrap();
+                    let input_text_with_newline = format!("{}\n", $input_text);
+                    let mut scanner = Scanner::with_input(&input_text_with_newline);
+
+                    let token = scanner.scan_next_token();
 
                     let expected_token = Token { kind: $expected_kind };
-                    let expected_span = Span::from_raw_pos(0, $input.len());
+                    let expected_span = Span::from_raw_pos(0, $input_text.len());
 
-                    assert_eq!(token, Spannable::with_span(expected_token, expected_span));
-                    assert_eq!(scanner.chars.peek(), CharStream::EOF_CHAR);
+                    assert_eq!(token, Ok(Spannable::with_span(expected_token, expected_span)));
+                    assert_eq!(scanner.chars.peek(), '\n');
                 }
             )*
         }
