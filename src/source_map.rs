@@ -31,12 +31,10 @@ pub struct Spanned<T> {
 }
 
 impl<T> Spanned<T> {
-    // TODO: Test.
     pub(crate) fn new(value: T, span: Span) -> Spanned<T> {
         Spanned { value, span }
     }
 
-    // TODO: Test.
     pub(crate) const fn with_empty_span(value: T) -> Spanned<T> {
         Spanned {
             value,
@@ -315,5 +313,45 @@ mod tests {
     fn span_from_raw_pos_should_not_allow_start_greater_than_end() {
         use super::Span;
         let _ = Span::from_raw_pos(3, 2);
+    }
+
+    #[test]
+    fn spanned_new_should_create_a_spanned_with_a_value_and_a_span() {
+        use super::{Span, Spanned};
+
+        let spanned = Spanned::new('a', Span::from_raw_pos(34, 53));
+
+        assert_eq!(spanned.value, 'a');
+        assert_eq!(spanned.span, Span::from_raw_pos(34, 53));
+
+        let spanned = Spanned::new(42, Span::from_raw_pos(0, 3));
+
+        assert_eq!(spanned.value, 42);
+        assert_eq!(spanned.span, Span::from_raw_pos(0, 3));
+
+        let spanned = Spanned::new("abc", Span::EMPTY);
+
+        assert_eq!(spanned.value, "abc");
+        assert_eq!(spanned.span, Span::EMPTY);
+    }
+
+    #[test]
+    fn spanned_with_empty_span_should_create_a_spanned_with_a_value_and_empty_span() {
+        use super::{Span, Spanned};
+
+        let spanned = Spanned::with_empty_span('a');
+
+        assert_eq!(spanned.value, 'a');
+        assert_eq!(spanned.span, Span::EMPTY);
+
+        let spanned = Spanned::with_empty_span(42);
+
+        assert_eq!(spanned.value, 42);
+        assert_eq!(spanned.span, Span::EMPTY);
+
+        let spanned = Spanned::with_empty_span("abc");
+
+        assert_eq!(spanned.value, "abc");
+        assert_eq!(spanned.span, Span::EMPTY);
     }
 }
