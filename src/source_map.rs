@@ -43,7 +43,6 @@ impl<T> Spanned<T> {
     }
 }
 
-// TODO: Test.
 impl<T> std::ops::Deref for Spanned<T> {
     type Target = T;
 
@@ -353,5 +352,20 @@ mod tests {
 
         assert_eq!(spanned.value, "abc");
         assert_eq!(spanned.span, Span::EMPTY);
+    }
+
+    #[test]
+    fn spanned_should_deref_to_its_internal_value() {
+        use super::{Span, Spanned};
+
+        #[derive(PartialEq, Debug)]
+        struct S {
+            i: i32,
+        }
+
+        let spanned = Spanned::new(S { i: 42 }, Span::from_raw_pos(34, 53));
+
+        assert_eq!(*spanned, S { i: 42 });
+        assert_eq!(spanned.i, 42);
     }
 }
