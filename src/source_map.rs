@@ -25,7 +25,7 @@ impl Span {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Spannable<T> {
     value: T,
-    span: Span,
+    pub(crate) span: Span,
 }
 
 impl<T> Spannable<T> {

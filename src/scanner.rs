@@ -100,6 +100,7 @@ pub enum TokenKind {
     KwNoreturn,
     KwStaticAssert,
     KwThreadLocal,
+    IntegerConstant,
     Eof,
 }
 
@@ -271,10 +272,19 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
+            '0' => TokenKind::IntegerConstant,
+            '1'..='9' => {
+                while let '0'..='9' = self.chars.peek() {
+                    self.chars.consume();
+                }
+                TokenKind::IntegerConstant
+            }
             ident_head @ ('a'..='z' | 'A'..='Z' | '_') => {
                 self.scan_identifier_or_keyword(ident_head)
             }
-            _ => unimplemented!(),
+            unrecognized_char => {
+                unimplemented!("character not recognized: `{}`", unrecognized_char)
+            }
         };
 
         let span_end = self.chars.peek_byte_pos();
@@ -659,6 +669,57 @@ mod tests {
 
         for ch in all_ascii_non_whitespaces {
             assert!(!is_whitespace_char(ch as char), "ASCII code is: `{}`", ch);
+        }
+    }
+
+    #[test]
+    fn sequence_of_one_or_more_decimal_digits_should_be_scanned_as_integer_constant() {
+        let decimal_digit_sequences = [
+            "1234567890",
+            "2340056",
+            "352",
+            "4402",
+            "562307",
+            "629",
+            "70001",
+            "81",
+            "93903458062390497540956",
+            "1000000000000000000000000000000000000000000000000000000",
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+        ];
+
+        let input_text = format!("{}\n", decimal_digit_sequences.join(" "));
+        let mut scanner = Scanner::with_input(&input_text);
+
+        let mut cursor = 0;
+
+        for decimal_digit_seq in decimal_digit_sequences {
+            let end_cursor = cursor + decimal_digit_seq.len();
+            let expected_span = Span::from_raw_pos(cursor, end_cursor);
+
+            let token = scanner.scan_next_token();
+            let expected_token = Token {
+                kind: TokenKind::IntegerConstant,
+            };
+
+            assert_eq!(
+                token,
+                Ok(Spannable::with_span(expected_token, expected_span)),
+                "decimal constant: `{}`",
+                decimal_digit_seq
+            );
+
+            // Plus one to account for the whitespace between the numbers.
+            cursor = end_cursor + 1;
         }
     }
 }
