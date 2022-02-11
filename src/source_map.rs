@@ -13,9 +13,10 @@ impl Span {
         end: BytePos::EMPTY,
     };
 
-    // TODO: Test.
     #[cfg(test)]
     pub(crate) fn from_raw_pos(start: usize, end: usize) -> Span {
+        debug_assert!(start <= end, "cannot have start greater than end");
+
         Span {
             start: BytePos::from_usize(start),
             end: BytePos::from_usize(end),
@@ -278,5 +279,41 @@ mod tests {
             let line_index = lookup_line_index(&start_pos_of_lines, BytePos(2));
             assert_eq!(line_index, Some(2usize));
         }
+    }
+
+    #[test]
+    fn span_from_raw_pos_should_create_a_span_of_byte_poses() {
+        use super::{BytePos, Span};
+
+        assert_eq!(
+            Span::from_raw_pos(123, 2949),
+            Span {
+                start: BytePos(123),
+                end: BytePos(2949),
+            }
+        );
+
+        assert_eq!(
+            Span::from_raw_pos(3, 4),
+            Span {
+                start: BytePos(3),
+                end: BytePos(4),
+            }
+        );
+
+        assert_eq!(
+            Span::from_raw_pos(0, 0),
+            Span {
+                start: BytePos(0),
+                end: BytePos(0),
+            }
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "cannot have start greater than end")]
+    fn span_from_raw_pos_should_not_allow_start_greater_than_end() {
+        use super::Span;
+        let _ = Span::from_raw_pos(3, 2);
     }
 }
