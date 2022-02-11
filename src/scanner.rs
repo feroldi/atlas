@@ -1,5 +1,5 @@
 use crate::char_stream::CharStream;
-use crate::source_map::{Span, Spannable};
+use crate::source_map::{Span, Spanned};
 use std::assert_matches::debug_assert_matches;
 
 #[derive(PartialEq, Debug)]
@@ -110,7 +110,7 @@ pub struct Token {
 }
 
 impl Token {
-    const EOF: Spannable<Token> = Spannable::with_empty_span(Token {
+    const EOF: Spanned<Token> = Spanned::with_empty_span(Token {
         kind: TokenKind::Eof,
     });
 }
@@ -130,7 +130,7 @@ impl Scanner<'_> {
         }
     }
 
-    pub fn scan_next_token(&mut self) -> Result<Spannable<Token>, ScanDiag> {
+    pub fn scan_next_token(&mut self) -> Result<Spanned<Token>, ScanDiag> {
         while is_whitespace_char(self.chars.peek()) {
             self.chars.consume();
         }
@@ -293,7 +293,7 @@ impl Scanner<'_> {
             end: span_end,
         };
 
-        Ok(Spannable::with_span(Token { kind: token_kind }, token_span))
+        Ok(Spanned::new(Token { kind: token_kind }, token_span))
     }
 
     fn scan_identifier_or_keyword(&mut self, ident_head: char) -> TokenKind {
@@ -373,7 +373,7 @@ fn is_whitespace_char(ch: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{Bracket, Scanner, Token, TokenKind};
-    use crate::source_map::{Span, Spannable};
+    use crate::source_map::{Span, Spanned};
 
     #[test]
     fn scanning_an_empty_input_should_return_an_eof_token() {
@@ -397,7 +397,7 @@ mod tests {
                     let expected_token = Token { kind: $expected_kind };
                     let expected_span = Span::from_raw_pos(0, $input_text.len());
 
-                    assert_eq!(token, Ok(Spannable::with_span(expected_token, expected_span)));
+                    assert_eq!(token, Ok(Spanned::new(expected_token, expected_span)));
                     assert_eq!(scanner.chars.peek(), '\n');
                 }
             )*
@@ -505,7 +505,7 @@ mod tests {
 
         assert_eq!(
             scanner.scan_next_token().unwrap(),
-            Spannable::with_span(
+            Spanned::new(
                 Token {
                     kind: TokenKind::Period
                 },
@@ -515,7 +515,7 @@ mod tests {
 
         assert_eq!(
             scanner.scan_next_token().unwrap(),
-            Spannable::with_span(
+            Spanned::new(
                 Token {
                     kind: TokenKind::Period
                 },
@@ -536,7 +536,7 @@ mod tests {
 
         assert_eq!(
             token,
-            Spannable::with_span(
+            Spanned::new(
                 Token {
                     kind: TokenKind::Identifier
                 },
@@ -555,7 +555,7 @@ mod tests {
 
             let token = scanner.scan_next_token();
 
-            let expected_token = Spannable::with_span(
+            let expected_token = Spanned::new(
                 Token {
                     kind: TokenKind::Identifier,
                 },
@@ -585,7 +585,7 @@ mod tests {
 
             let token = scanner.scan_next_token();
 
-            let expected_token = Spannable::with_span(
+            let expected_token = Spanned::new(
                 Token {
                     kind: TokenKind::Identifier,
                 },
@@ -604,7 +604,7 @@ mod tests {
 
         assert_eq!(
             token_foo,
-            Spannable::with_span(
+            Spanned::new(
                 Token {
                     kind: TokenKind::Identifier
                 },
@@ -616,7 +616,7 @@ mod tests {
 
         assert_eq!(
             token_bar,
-            Spannable::with_span(
+            Spanned::new(
                 Token {
                     kind: TokenKind::Identifier
                 },
@@ -645,7 +645,7 @@ mod tests {
 
         assert_eq!(
             token,
-            Spannable::with_span(
+            Spanned::new(
                 Token {
                     kind: TokenKind::Identifier
                 },
@@ -714,7 +714,7 @@ mod tests {
 
             assert_eq!(
                 token,
-                Ok(Spannable::with_span(expected_token, expected_span)),
+                Ok(Spanned::new(expected_token, expected_span)),
                 "decimal constant: `{}`",
                 decimal_digit_seq
             );

@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign};
 
-// This is an exclusive text range as in [start, end).
+/// This is an exclusive text range as in [start, end).
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Span {
     pub(crate) start: BytePos,
@@ -14,6 +14,7 @@ impl Span {
     };
 
     // TODO: Test.
+    #[cfg(test)]
     pub(crate) fn from_raw_pos(start: usize, end: usize) -> Span {
         Span {
             start: BytePos::from_usize(start),
@@ -23,28 +24,28 @@ impl Span {
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub struct Spannable<T> {
+pub struct Spanned<T> {
     value: T,
     pub(crate) span: Span,
 }
 
-impl<T> Spannable<T> {
+impl<T> Spanned<T> {
     // TODO: Test.
-    pub(crate) const fn with_empty_span(value: T) -> Spannable<T> {
-        Spannable {
+    pub(crate) fn new(value: T, span: Span) -> Spanned<T> {
+        Spanned { value, span }
+    }
+
+    // TODO: Test.
+    pub(crate) const fn with_empty_span(value: T) -> Spanned<T> {
+        Spanned {
             value,
             span: Span::EMPTY,
         }
     }
-
-    // TODO: Test.
-    pub(crate) fn with_span(value: T, span: Span) -> Spannable<T> {
-        Spannable { value, span }
-    }
 }
 
 // TODO: Test.
-impl<T> std::ops::Deref for Spannable<T> {
+impl<T> std::ops::Deref for Spanned<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -95,6 +96,7 @@ impl std::convert::From<usize> for BytePos {
     }
 }
 
+#[allow(dead_code)]
 fn calc_lines_positions(source_text: &str) -> Vec<BytePos> {
     std::iter::once(0usize)
         .chain(source_text.match_indices('\n').map(|(idx, _)| idx + 1))
@@ -103,6 +105,7 @@ fn calc_lines_positions(source_text: &str) -> Vec<BytePos> {
         .collect()
 }
 
+#[allow(dead_code)]
 fn lookup_line_index(lines_pos: &[BytePos], pos: BytePos) -> Option<usize> {
     lines_pos
         .iter()
