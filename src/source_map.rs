@@ -368,4 +368,13 @@ mod tests {
         assert_eq!(*spanned, S { i: 42 });
         assert_eq!(spanned.i, 42);
     }
+
+    #[test]
+    fn usize_should_be_convertible_to_byte_pos() {
+        use super::{BytePos, Pos};
+
+        let bp: BytePos = 42usize.into();
+
+        assert_eq!(bp, BytePos::from_usize(42));
+    }
 }
