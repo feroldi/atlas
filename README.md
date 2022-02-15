@@ -28,6 +28,7 @@ $ cargo build
 C11 is a great, challenging language to make a compiler for. It's also
 true that one can learn a lot by writing a compiler. That being so,
 C11 seems to be an option that gets the most out of the experience.
+Just imagine being able to compile whole big projects out there :)
 
 ## License
 
