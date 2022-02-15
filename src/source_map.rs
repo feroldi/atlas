@@ -87,7 +87,6 @@ impl AddAssign for BytePos {
     }
 }
 
-// TODO: Write tests.
 impl std::convert::From<usize> for BytePos {
     fn from(value: usize) -> BytePos {
         BytePos::from_usize(value)
