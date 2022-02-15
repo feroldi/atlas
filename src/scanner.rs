@@ -110,7 +110,7 @@ pub struct Token {
 }
 
 impl Token {
-    const EOF: Spanned<Token> = Spanned::with_empty_span(Token {
+    const EOF: Spanned<Token> = Spanned::with_dummy_span(Token {
         kind: TokenKind::Eof,
     });
 }

@@ -8,9 +8,9 @@ pub struct Span {
 }
 
 impl Span {
-    const EMPTY: Span = Span {
-        start: BytePos::EMPTY,
-        end: BytePos::EMPTY,
+    const DUMMY: Span = Span {
+        start: BytePos(0),
+        end: BytePos(0),
     };
 
     #[cfg(test)]
@@ -35,10 +35,10 @@ impl<T> Spanned<T> {
         Spanned { value, span }
     }
 
-    pub(crate) const fn with_empty_span(value: T) -> Spanned<T> {
+    pub(crate) const fn with_dummy_span(value: T) -> Spanned<T> {
         Spanned {
             value,
-            span: Span::EMPTY,
+            span: Span::DUMMY,
         }
     }
 }
@@ -58,10 +58,6 @@ pub trait Pos: Sized + Add + AddAssign {
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct BytePos(usize);
-
-impl BytePos {
-    const EMPTY: BytePos = BytePos(usize::MAX);
-}
 
 impl Pos for BytePos {
     fn from_usize(value: usize) -> BytePos {
@@ -327,30 +323,30 @@ mod tests {
         assert_eq!(spanned.value, 42);
         assert_eq!(spanned.span, Span::from_raw_pos(0, 3));
 
-        let spanned = Spanned::new("abc", Span::EMPTY);
+        let spanned = Spanned::new("abc", Span::DUMMY);
 
         assert_eq!(spanned.value, "abc");
-        assert_eq!(spanned.span, Span::EMPTY);
+        assert_eq!(spanned.span, Span::DUMMY);
     }
 
     #[test]
-    fn spanned_with_empty_span_should_create_a_spanned_with_a_value_and_empty_span() {
+    fn spanned_with_dummy_span_should_create_a_spanned_with_a_value_and_dummy_span() {
         use super::{Span, Spanned};
 
-        let spanned = Spanned::with_empty_span('a');
+        let spanned = Spanned::with_dummy_span('a');
 
         assert_eq!(spanned.value, 'a');
-        assert_eq!(spanned.span, Span::EMPTY);
+        assert_eq!(spanned.span, Span::DUMMY);
 
-        let spanned = Spanned::with_empty_span(42);
+        let spanned = Spanned::with_dummy_span(42);
 
         assert_eq!(spanned.value, 42);
-        assert_eq!(spanned.span, Span::EMPTY);
+        assert_eq!(spanned.span, Span::DUMMY);
 
-        let spanned = Spanned::with_empty_span("abc");
+        let spanned = Spanned::with_dummy_span("abc");
 
         assert_eq!(spanned.value, "abc");
-        assert_eq!(spanned.span, Span::EMPTY);
+        assert_eq!(spanned.span, Span::DUMMY);
     }
 
     #[test]
