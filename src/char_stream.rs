@@ -323,9 +323,9 @@ mod tests {
         let mut char_stream = CharStream::with_text(text_input_with_varying_char_lengths);
 
         let expected_peek_byte_poses = [
-            BytePos::from_usize(2), // 0 + 2
-            BytePos::from_usize(5), // 2 + 3
-            BytePos::from_usize(9), // 5 + 4
+            BytePos::from_usize(2), // 2-byte length
+            BytePos::from_usize(5), // 3-byte length
+            BytePos::from_usize(9), // 4-byte length
         ];
 
         for expected_peek_byte_pos in expected_peek_byte_poses {
