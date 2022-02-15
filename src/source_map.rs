@@ -1,26 +1,31 @@
+use std::assert_matches::debug_assert_matches;
 use std::ops::{Add, AddAssign};
 
-/// This is an exclusive text range as in [start, end).
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub struct Span {
-    pub(crate) start: BytePos,
-    pub(crate) end: BytePos,
+struct SourceFile<'a> {
+    source_text: &'a str,
 }
 
-impl Span {
-    const DUMMY: Span = Span {
-        start: BytePos(0),
-        end: BytePos(0),
-    };
+impl SourceFile<'_> {
+    fn new(source_text: &str) -> SourceFile {
+        SourceFile { source_text }
+    }
 
-    #[cfg(test)]
-    pub(crate) fn from_raw_pos(start: usize, end: usize) -> Span {
-        debug_assert!(start <= end, "cannot have start greater than end");
+    fn span_to_snippet(&self, span: impl Into<Span>) -> &str {
+        let span = span.into();
+        let (start_idx, end_idx) = (span.start.to_usize(), span.end.to_usize());
 
-        Span {
-            start: BytePos::from_usize(start),
-            end: BytePos::from_usize(end),
-        }
+        debug_assert_matches!(
+            {
+                let source_bytes = self.source_text.as_bytes();
+                let snippet_bytes = &source_bytes[start_idx..end_idx];
+                std::str::from_utf8(snippet_bytes)
+            },
+            Ok(_),
+            "span is an invalid UTF-8 sequence"
+        );
+
+        // SAFETY: Span is always a valid utf-8 snippet.
+        unsafe { self.source_text.get_unchecked(start_idx..end_idx) }
     }
 }
 
@@ -46,8 +51,40 @@ impl<T> Spanned<T> {
 impl<T> std::ops::Deref for Spanned<T> {
     type Target = T;
 
-    fn deref(&self) -> &T {
+    fn deref(&self) -> &Self::Target {
         &self.value
+    }
+}
+
+// TODO: Test.
+impl<T> From<Spanned<T>> for Span {
+    fn from(spanned: Spanned<T>) -> Span {
+        spanned.span
+    }
+}
+
+/// This is an exclusive text range as in [start, end).
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub struct Span {
+    pub(crate) start: BytePos,
+    pub(crate) end: BytePos,
+}
+
+impl Span {
+    // TODO: Should we try to normalize spans with start == end to a dummy?
+    const DUMMY: Span = Span {
+        start: BytePos(0),
+        end: BytePos(0),
+    };
+
+    #[cfg(test)]
+    pub(crate) fn from_raw_pos(start: usize, end: usize) -> Span {
+        debug_assert!(start <= end, "cannot have start greater than end");
+
+        Span {
+            start: BytePos::from_usize(start),
+            end: BytePos::from_usize(end),
+        }
     }
 }
 
@@ -371,5 +408,63 @@ mod tests {
         let bp: BytePos = 42usize.into();
 
         assert_eq!(bp, BytePos::from_usize(42));
+    }
+
+    mod source_file {
+        use crate::source_map::{SourceFile, Span};
+
+        #[test]
+        fn span_to_snippet_should_return_empty_string_for_dummy_span() {
+            let sc = SourceFile::new("hello world!\n");
+
+            assert_eq!(sc.span_to_snippet(Span::DUMMY), "");
+        }
+
+        #[test]
+        fn span_to_snippet_should_return_empty_string_for_empty_span() {
+            let sc = SourceFile::new("hello world!\n");
+
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(2, 2)), "");
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(3, 3)), "");
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(5, 5)), "");
+        }
+
+        #[test]
+        #[should_panic(expected = "range end index 14 out of range for slice of length 13")]
+        fn span_to_snippet_should_panic_on_out_of_bounds_spans() {
+            let sc = SourceFile::new("hello world!\n");
+
+            let _ = sc.span_to_snippet(Span::from_raw_pos(14, 14));
+        }
+
+        #[test]
+        fn span_to_snippet_should_return_substring_for_the_exclusive_range_of_a_non_dummy_span() {
+            let sc = SourceFile::new("hello world!\n");
+
+            assert_eq!(
+                sc.span_to_snippet(Span::from_raw_pos(0, 13)),
+                "hello world!\n"
+            );
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(0, 1)), "h");
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(1, 2)), "e");
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(0, 5)), "hello");
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(6, 11)), "world");
+        }
+
+        #[test]
+        fn span_to_snippet_should_work_with_utf8_text() {
+            let sc = SourceFile::new("🗻∈🌏");
+
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(0, 4)), "🗻");
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(4, 7)), "∈");
+            assert_eq!(sc.span_to_snippet(Span::from_raw_pos(7, 11)), "🌏");
+        }
+
+        #[test]
+        #[should_panic(expected = "span is an invalid UTF-8 sequence")]
+        fn span_to_snippet_should_panic_if_span_is_broken_utf8() {
+            let sc = SourceFile::new("\u{0800}");
+            let _ = sc.span_to_snippet(Span::from_raw_pos(0, 1));
+        }
     }
 }
