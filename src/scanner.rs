@@ -100,7 +100,7 @@ pub enum TokenKind {
     KwNoreturn,
     KwStaticAssert,
     KwThreadLocal,
-    IntegerConstant,
+    NumericConstant,
     Eof,
 }
 
@@ -272,16 +272,30 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
-            '0' => TokenKind::IntegerConstant,
-            '1'..='9' => {
-                while let '0'..='9' = self.chars.peek() {
+            ch if ch.is_ascii_digit() => {
+                // TODO: Refactor this section into a function.
+                let mut prev_peek = ch;
+
+                while self.chars.peek().is_ascii_alphanumeric() {
+                    prev_peek = self.chars.peek();
                     self.chars.consume();
                 }
-                TokenKind::IntegerConstant
+
+                if matches!(
+                    (prev_peek, self.chars.peek()),
+                    ('p' | 'P' | 'e' | 'E', '+' | '-')
+                ) {
+                    let sign_char = self.chars.consume();
+                    debug_assert_matches!(sign_char, '+' | '-');
+
+                    while self.chars.peek().is_ascii_alphanumeric() {
+                        self.chars.consume();
+                    }
+                }
+
+                TokenKind::NumericConstant
             }
-            ident_head @ ('a'..='z' | 'A'..='Z' | '_') => {
-                self.scan_identifier_or_keyword(ident_head)
-            }
+            ch if is_identifier_head(ch) => self.scan_identifier_or_keyword(ch),
             unrecognized_char => {
                 unimplemented!("character not recognized: `{}`", unrecognized_char)
             }
@@ -297,12 +311,12 @@ impl Scanner<'_> {
     }
 
     fn scan_identifier_or_keyword(&mut self, ident_head: char) -> TokenKind {
-        debug_assert_matches!(ident_head, 'a'..='z' | 'A'..='Z' | '_');
+        debug_assert!(is_identifier_head(ident_head), "char: `{}`", ident_head);
 
         let mut lexeme_buffer = String::with_capacity(16);
         lexeme_buffer.push(ident_head);
 
-        while let '_' | 'a'..='z' | 'A'..='Z' | '0'..='9' = self.chars.peek() {
+        while is_identifier_tail(self.chars.peek()) {
             lexeme_buffer.push(self.chars.consume());
         }
 
@@ -368,6 +382,16 @@ fn is_whitespace_char(ch: char) -> bool {
         ch,
         SPACE | TAB | LINE_FEED | CARRIAGE_RETURN | VERTICAL_TAB | FORM_FEED,
     )
+}
+
+// TODO(feroldi): Test.
+fn is_identifier_head(ch: char) -> bool {
+    matches!(ch, 'a'..='z' | 'A'..='Z' | '_')
+}
+
+// TODO(feroldi): Test.
+fn is_identifier_tail(ch: char) -> bool {
+    matches!(ch, 'a'..='z' | 'A'..='Z' | '_' | '0'..='9')
 }
 
 #[cfg(test)]
@@ -674,8 +698,8 @@ mod tests {
     }
 
     #[test]
-    fn sequence_of_one_or_more_decimal_digits_should_be_scanned_as_integer_constant() {
-        let decimal_digit_sequences = [
+    fn sequence_of_one_or_more_ascii_digits_should_be_scanned_as_numeric_constant() {
+        utils::assert_numeric_constants(&[
             "1234567890",
             "2340056",
             "352",
@@ -686,6 +710,8 @@ mod tests {
             "81",
             "93903458062390497540956",
             "1000000000000000000000000000000000000000000000000000000",
+            "000",
+            "000123",
             "0",
             "1",
             "2",
@@ -696,31 +722,115 @@ mod tests {
             "7",
             "8",
             "9",
-        ];
+        ]);
+    }
 
-        let input_text = format!("{}\n", decimal_digit_sequences.join(" "));
-        let mut scanner = Scanner::with_input(&input_text);
+    #[test]
+    fn digits_with_alphanumeric_chars_mixed_in_should_be_scanned_as_a_numeric_constant() {
+        utils::assert_numeric_constants(&[
+            "123abc",
+            "1a",
+            "000i",
+            "0xFFFFF",
+            "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            "123abc456",
+        ]);
+    }
 
-        let mut cursor = 0;
+    #[test]
+    fn digits_with_scientific_notation_should_be_scanned_as_a_numeric_constant() {
+        utils::assert_numeric_constants(&[
+            "123e0456",
+            "123e+0456",
+            "123e-0456",
+            "123p0456",
+            "123p+0456",
+            "123p-0456",
+        ]);
+    }
 
-        for decimal_digit_seq in decimal_digit_sequences {
-            let end_cursor = cursor + decimal_digit_seq.len();
-            let expected_span = Span::from_raw_pos(cursor, end_cursor);
+    #[test]
+    fn numeric_constants_stop_being_scanned_after_reaching_a_punctuation() {
+        let mut scanner = Scanner::with_input("12345+6789-567");
 
-            let token = scanner.scan_next_token();
-            let expected_token = Token {
-                kind: TokenKind::IntegerConstant,
-            };
+        // TODO: Refactor these assertion sequences into a asserting function
+        // that scans the next token, and compares the token's kind and span.
+        let token = scanner.scan_next_token();
+        let expected_token = Spanned::new(
+            Token {
+                kind: TokenKind::NumericConstant,
+            },
+            Span::from_raw_pos(0, 5),
+        );
+        assert_eq!(token, Ok(expected_token));
 
-            assert_eq!(
-                token,
-                Ok(Spanned::new(expected_token, expected_span)),
-                "decimal constant: `{}`",
-                decimal_digit_seq
-            );
+        let token = scanner.scan_next_token();
+        let expected_token = Spanned::new(
+            Token {
+                kind: TokenKind::Plus,
+            },
+            Span::from_raw_pos(5, 6),
+        );
+        assert_eq!(token, Ok(expected_token));
 
-            // Plus one to account for the whitespace between the numbers.
-            cursor = end_cursor + 1;
+        let token = scanner.scan_next_token();
+        let expected_token = Spanned::new(
+            Token {
+                kind: TokenKind::NumericConstant,
+            },
+            Span::from_raw_pos(6, 10),
+        );
+        assert_eq!(token, Ok(expected_token));
+
+        let token = scanner.scan_next_token();
+        let expected_token = Spanned::new(
+            Token {
+                kind: TokenKind::Minus,
+            },
+            Span::from_raw_pos(10, 11),
+        );
+        assert_eq!(token, Ok(expected_token));
+
+        let token = scanner.scan_next_token();
+        let expected_token = Spanned::new(
+            Token {
+                kind: TokenKind::NumericConstant,
+            },
+            Span::from_raw_pos(11, 14),
+        );
+        assert_eq!(token, Ok(expected_token));
+
+        assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+    }
+
+    mod utils {
+        use super::*;
+
+        pub(super) fn assert_numeric_constants(numeric_constants: &[&str]) {
+            let input_text = format!("{}\n", numeric_constants.join(" "));
+            let mut scanner = Scanner::with_input(&input_text);
+
+            let mut cursor = 0;
+
+            for decimal_digit_seq in numeric_constants {
+                let end_cursor = cursor + decimal_digit_seq.len();
+                let expected_span = Span::from_raw_pos(cursor, end_cursor);
+
+                let token = scanner.scan_next_token();
+                let expected_token = Token {
+                    kind: TokenKind::NumericConstant,
+                };
+
+                assert_eq!(
+                    token,
+                    Ok(Spanned::new(expected_token, expected_span)),
+                    "numeric constant: `{}`",
+                    decimal_digit_seq
+                );
+
+                // Plus one to account for the whitespace between the numbers.
+                cursor = end_cursor + 1;
+            }
         }
     }
 }
