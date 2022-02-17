@@ -408,6 +408,7 @@ mod tests {
         assert_eq!(token, Ok(Token::EOF));
     }
 
+    // TODO: Check if we can merge this macro with `utils::assert_numeric_constants`.
     macro_rules! test_token_kind {
         ( $( $test_name:ident : $input_text:literal => $expected_kind:expr ,)* ) => {
             $(
@@ -601,10 +602,10 @@ mod tests {
         let digits = "0123456789";
 
         for nondigit_char in nondigit_chars {
-            // Note that the last whitespace in the input is important to make this
+            // Note that the ending newline in the input is important to make this
             // test check that the scanner indeed consumes digits, otherwise it could
             // just scan until EOF, which isn't what we want.
-            let text_input = format!("{}{} ", nondigit_char, digits);
+            let text_input = format!("{}{}\n", nondigit_char, digits);
             let mut scanner = Scanner::with_input(&text_input);
 
             let token = scanner.scan_next_token();
@@ -620,62 +621,48 @@ mod tests {
         }
     }
 
+    macro_rules! assert_token_sequence {
+        ( input_text: $input_text:literal, expected_tokens: $( <$kind:expr, $lexeme:literal>, )+ ) => {
+            use crate::source_map::SourceFile;
+
+            let input_text = format!("{}\n", $input_text);
+            let mut scanner = Scanner::with_input(&input_text);
+            let source_file = SourceFile::new(&input_text);
+
+            $(
+                let token = scanner.scan_next_token().unwrap();
+
+                let expected_token = Token {
+                    kind: $kind,
+                };
+
+                assert_eq!(*token, expected_token, "lexeme: `{}`", $lexeme);
+                assert_eq!(source_file.get_text_snippet(token), $lexeme);
+            )+
+
+            assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+        };
+    }
+
     #[test]
     fn scanning_of_identifiers_should_stop_at_a_non_identifier_char() {
-        let mut scanner = Scanner::with_input("foo1 bar2");
-
-        let token_foo = scanner.scan_next_token().unwrap();
-
-        assert_eq!(
-            token_foo,
-            Spanned::new(
-                Token {
-                    kind: TokenKind::Identifier
-                },
-                Span::from_raw_pos(0, 4)
-            )
-        );
-
-        let token_bar = scanner.scan_next_token().unwrap();
-
-        assert_eq!(
-            token_bar,
-            Spanned::new(
-                Token {
-                    kind: TokenKind::Identifier
-                },
-                Span::from_raw_pos(5, 9)
-            )
-        );
+        assert_token_sequence! {
+            input_text: "foo1 bar2",
+            expected_tokens:
+                <TokenKind::Identifier, "foo1">,
+                <TokenKind::Identifier, "bar2">,
+        }
     }
 
     // TODO: Test that multiple calls to scan_next_token ignores whitespace.
     #[test]
     fn whitespace_at_the_start_of_the_input_should_be_ignored_when_scanned() {
-        let space = ' ';
-        let tab = '\t';
-        let line_feed = '\n';
-        let carriage_return = '\r';
-        let vertical_tab = '\x0b';
-        let form_feed = '\x0c';
-
-        let input_text = format!(
-            "{}{}{}{}{}{}foo",
-            space, tab, line_feed, carriage_return, vertical_tab, form_feed
-        );
-        let mut scanner = Scanner::with_input(&input_text);
-
-        let token = scanner.scan_next_token().unwrap();
-
-        assert_eq!(
-            token,
-            Spanned::new(
-                Token {
-                    kind: TokenKind::Identifier
-                },
-                Span::from_raw_pos(6, 9)
-            )
-        );
+        assert_token_sequence! {
+            input_text: " \t\n\r\x0b\x0cfoo \t\n\rbar\x0b\x0c",
+            expected_tokens:
+                <TokenKind::Identifier, "foo">,
+                <TokenKind::Identifier, "bar">,
+        }
     }
 
     #[test]
@@ -751,85 +738,48 @@ mod tests {
 
     #[test]
     fn numeric_constants_stop_being_scanned_after_reaching_a_punctuation() {
-        let mut scanner = Scanner::with_input("12345+6789-567");
-
-        // TODO: Refactor these assertion sequences into a asserting function
-        // that scans the next token, and compares the token's kind and span.
-        let token = scanner.scan_next_token();
-        let expected_token = Spanned::new(
-            Token {
-                kind: TokenKind::NumericConstant,
-            },
-            Span::from_raw_pos(0, 5),
-        );
-        assert_eq!(token, Ok(expected_token));
-
-        let token = scanner.scan_next_token();
-        let expected_token = Spanned::new(
-            Token {
-                kind: TokenKind::Plus,
-            },
-            Span::from_raw_pos(5, 6),
-        );
-        assert_eq!(token, Ok(expected_token));
-
-        let token = scanner.scan_next_token();
-        let expected_token = Spanned::new(
-            Token {
-                kind: TokenKind::NumericConstant,
-            },
-            Span::from_raw_pos(6, 10),
-        );
-        assert_eq!(token, Ok(expected_token));
-
-        let token = scanner.scan_next_token();
-        let expected_token = Spanned::new(
-            Token {
-                kind: TokenKind::Minus,
-            },
-            Span::from_raw_pos(10, 11),
-        );
-        assert_eq!(token, Ok(expected_token));
-
-        let token = scanner.scan_next_token();
-        let expected_token = Spanned::new(
-            Token {
-                kind: TokenKind::NumericConstant,
-            },
-            Span::from_raw_pos(11, 14),
-        );
-        assert_eq!(token, Ok(expected_token));
-
-        assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+        assert_token_sequence! {
+            input_text: "12345+6789-567",
+            expected_tokens:
+                <TokenKind::NumericConstant, "12345">,
+                <TokenKind::Plus, "+">,
+                <TokenKind::NumericConstant, "6789">,
+                <TokenKind::Minus, "-">,
+                <TokenKind::NumericConstant, "567">,
+        }
     }
 
     mod utils {
-        use super::*;
+        use crate::{
+            scanner::{Scanner, Token, TokenKind},
+            source_map::SourceFile,
+        };
 
         pub(super) fn assert_numeric_constants(numeric_constants: &[&str]) {
             let input_text = format!("{}\n", numeric_constants.join(" "));
+
             let mut scanner = Scanner::with_input(&input_text);
+            let source_file = SourceFile::new(&input_text);
 
-            let mut cursor = 0;
+            for &decimal_digit_seq in numeric_constants {
+                let token = scanner.scan_next_token().unwrap();
 
-            for decimal_digit_seq in numeric_constants {
-                let end_cursor = cursor + decimal_digit_seq.len();
-                let expected_span = Span::from_raw_pos(cursor, end_cursor);
-
-                let token = scanner.scan_next_token();
                 let expected_token = Token {
                     kind: TokenKind::NumericConstant,
                 };
 
                 assert_eq!(
-                    token,
-                    Ok(Spanned::new(expected_token, expected_span)),
+                    *token, expected_token,
                     "numeric constant: `{}`",
                     decimal_digit_seq
                 );
 
-                // Plus one to account for the whitespace between the numbers.
-                cursor = end_cursor + 1;
+                assert_eq!(
+                    source_file.get_text_snippet(token),
+                    decimal_digit_seq,
+                    "numeric constant: `{}`",
+                    decimal_digit_seq
+                );
             }
         }
     }
