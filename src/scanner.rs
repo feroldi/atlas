@@ -130,6 +130,9 @@ impl Scanner<'_> {
         }
     }
 
+    // TODO: Refactor this into free functions that scan a specific set of token categories. For
+    // example, have this check if peek is ascii punctuation, then call the punctuation scanning
+    // function passing in the char-stream.
     pub fn scan_next_token(&mut self) -> Result<Spanned<Token>, ScanDiag> {
         while is_whitespace_char(self.chars.peek()) {
             self.chars.consume();
