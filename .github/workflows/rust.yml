@@ -42,7 +42,7 @@ jobs:
 
       - name: Install coverage tool
         run: |
-          wget https://github.com/mozilla/grcov/releases/download/v0.8.7/grcov-x86_64-unknown-linux-gnu.tar.bz2 -O grcov.tar.bz2
+          wget https://github.com/feroldi/grcov/releases/download/v0.8.8-feroldi/grcov.tar.bz2 -O grcov.tar.bz2
           tar -xf grcov.tar.bz2
 
       - name: Collect coverage statistics
