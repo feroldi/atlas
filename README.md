@@ -1,7 +1,7 @@
 # Atlas
 
-![build](https://github.com/feroldi/atlas/actions/workflows/rust.yml/badge.svg)
-![coverage](https://feroldi.github.io/atlas-coverage/badges/flat.svg)
+[![build](https://github.com/feroldi/atlas/actions/workflows/rust.yml/badge.svg)](https://github.com/feroldi/atlas/actions/workflows/rust.yml)
+[![coverage](https://feroldi.github.io/atlas-coverage/badges/flat.svg)](https://feroldi.github.io/atlas-coverage)
 
 This is an experimental project of a C compiler written in Rust. More
 specifically, the implementation tries to follow the ISO/IEC 9899:2011
