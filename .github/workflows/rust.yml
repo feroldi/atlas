@@ -40,6 +40,11 @@ jobs:
         env:
           RUSTFLAGS: -C instrument-coverage
 
-      - name: Run grcov
-        id: coverage
-        uses: actions-rs/grcov@v0.1
+      - name: Install coverage tool
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: grcov
+
+      - name: Collect coverage statistics
+        run: grcov default.profraw --source-dir . --binary-path ./target/debug/ --llvm --branch --output-type lcov --output-path ./lcov.info
