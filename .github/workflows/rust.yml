@@ -41,10 +41,6 @@ jobs:
           RUSTFLAGS: -C instrument-coverage
           LLVM_PROFILE_FILE: atlas-%p-%m.profraw
 
-      - id: coverage
+      - name: Run grcov
+        id: coverage
         uses: actions-rs/grcov@v0.1
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v2
-        with:
-          file: ${{ steps.coverage.outputs.report }}
