@@ -1,5 +1,8 @@
 # Atlas
 
+![build](https://github.com/feroldi/atlas/actions/workflows/rust.yml/badge.svg)
+![coverage](https://raw.githubusercontent.com/feroldi/atlas-coverage/master/badges/plastic.svg)
+
 This is an experimental project of a C compiler written in Rust. More
 specifically, the implementation tries to follow the ISO/IEC 9899:2011
 standard (i.e., C11) to a certain extent. It's not a production compiler,
