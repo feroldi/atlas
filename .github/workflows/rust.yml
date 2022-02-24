@@ -39,7 +39,6 @@ jobs:
           command: test
         env:
           RUSTFLAGS: -C instrument-coverage
-          LLVM_PROFILE_FILE: atlas-%p-%m.profraw
 
       - name: Run grcov
         id: coverage
