@@ -12,17 +12,24 @@ techniques.
 
 ## Building
 
-Before building, make sure that all tests pass. Doing so guarentees a well working compiler.
+In order to build this project, you need to install [`cargo`](https://github.com/rust-lang/cargo).
+
+Once `cargo` is installed, make sure that all tests are passing.
+Doing so guarentees a well working compiler.
+You can do that by running the following command:
 
 ```bash
 $ cargo test
 ```
 
-Once tests are all green, build Atlas like so:
+If all tests pass, then you're good to go.
+Build the compiler and other tools by running the following command:
 
 ```bash
-$ cargo build
+$ cargo build --release
 ```
+
+Binaries can be found under the `target/release/` directory.
 
 ## FAQ
 
