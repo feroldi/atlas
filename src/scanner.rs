@@ -325,10 +325,7 @@ impl Scanner<'_> {
             lexeme_buffer.push(self.chars.consume());
         }
 
-        match get_keyword_kind_for_lexeme(&lexeme_buffer) {
-            Some(keyword_kind) => keyword_kind,
-            None => TokenKind::Identifier,
-        }
+        get_keyword_kind_for_lexeme(&lexeme_buffer).unwrap_or(TokenKind::Identifier)
     }
 }
 
