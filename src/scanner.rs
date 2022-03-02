@@ -781,24 +781,24 @@ mod tests {
         }
     }
 
-    struct TokenIter<'input> {
+    struct TokenKindAndLexemeIter<'input> {
         scanner: Scanner<'input>,
         source_file: SourceFile<'input>,
     }
 
-    impl<'input> TokenIter<'input> {
-        fn new(input_text: &'input str) -> TokenIter<'input> {
+    impl<'input> TokenKindAndLexemeIter<'input> {
+        fn new(input_text: &'input str) -> TokenKindAndLexemeIter<'input> {
             let scanner = Scanner::with_input(input_text);
             let source_file = SourceFile::new(input_text);
 
-            TokenIter {
+            TokenKindAndLexemeIter {
                 scanner,
                 source_file,
             }
         }
     }
 
-    impl<'input> Iterator for TokenIter<'input> {
+    impl<'input> Iterator for TokenKindAndLexemeIter<'input> {
         type Item = (TokenKind, &'input str);
 
         fn next(&mut self) -> Option<(TokenKind, &'input str)> {
@@ -815,7 +815,7 @@ mod tests {
     }
 
     fn scan_tokens(input_text: &str) -> Vec<(TokenKind, &str)> {
-        let tok_iter = TokenIter::new(input_text);
+        let tok_iter = TokenKindAndLexemeIter::new(input_text);
         let mut tokens = Vec::new();
 
         for tok in tok_iter {
@@ -826,7 +826,7 @@ mod tests {
     }
 
     fn scan_first_token(input_text: &str) -> (TokenKind, &str) {
-        let mut tok_stream = TokenIter::new(input_text);
+        let mut tok_stream = TokenKindAndLexemeIter::new(input_text);
         tok_stream.next().unwrap()
     }
 }
