@@ -5,12 +5,12 @@ pub(crate) struct SourceFile<'a> {
     source_text: &'a str,
 }
 
-impl SourceFile<'_> {
+impl<'a> SourceFile<'a> {
     pub(crate) fn new(source_text: &str) -> SourceFile {
         SourceFile { source_text }
     }
 
-    pub(crate) fn get_text_snippet(&self, span: impl Into<Span>) -> &str {
+    pub(crate) fn get_text_snippet(&self, span: impl Into<Span>) -> &'a str {
         let span = span.into();
         let (start_idx, end_idx) = (span.start.to_usize(), span.end.to_usize());
 

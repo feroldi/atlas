@@ -2,14 +2,14 @@ use crate::char_stream::CharStream;
 use crate::source_map::{Span, Spanned};
 use std::assert_matches::debug_assert_matches;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Bracket {
     Round,
     Square,
     Curly,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub enum TokenKind {
     Open(Bracket),
     Closed(Bracket),
@@ -104,7 +104,7 @@ pub enum TokenKind {
     Eof,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Token {
     pub kind: TokenKind,
 }
@@ -275,6 +275,7 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
+            // TODO: Define our own functions for these chars matching.
             ch if ch.is_ascii_digit() => {
                 // TODO: Refactor this section into a function.
                 let mut prev_peek = ch;
@@ -284,6 +285,7 @@ impl Scanner<'_> {
                     self.chars.consume();
                 }
 
+                // TODO: Improve this code's readability.
                 if matches!(
                     (prev_peek, self.chars.peek()),
                     ('p' | 'P' | 'e' | 'E', '+' | '-')
@@ -323,54 +325,64 @@ impl Scanner<'_> {
             lexeme_buffer.push(self.chars.consume());
         }
 
-        match lexeme_buffer.as_ref() {
-            "auto" => TokenKind::KwAuto,
-            "break" => TokenKind::KwBreak,
-            "case" => TokenKind::KwCase,
-            "char" => TokenKind::KwChar,
-            "const" => TokenKind::KwConst,
-            "continue" => TokenKind::KwContinue,
-            "default" => TokenKind::KwDefault,
-            "do" => TokenKind::KwDo,
-            "double" => TokenKind::KwDouble,
-            "else" => TokenKind::KwElse,
-            "enum" => TokenKind::KwEnum,
-            "extern" => TokenKind::KwExtern,
-            "float" => TokenKind::KwFloat,
-            "for" => TokenKind::KwFor,
-            "goto" => TokenKind::KwGoto,
-            "if" => TokenKind::KwIf,
-            "inline" => TokenKind::KwInline,
-            "int" => TokenKind::KwInt,
-            "long" => TokenKind::KwLong,
-            "register" => TokenKind::KwRegister,
-            "restrict" => TokenKind::KwRestrict,
-            "return" => TokenKind::KwReturn,
-            "short" => TokenKind::KwShort,
-            "signed" => TokenKind::KwSigned,
-            "sizeof" => TokenKind::KwSizeof,
-            "static" => TokenKind::KwStatic,
-            "struct" => TokenKind::KwStruct,
-            "switch" => TokenKind::KwSwitch,
-            "typedef" => TokenKind::KwTypedef,
-            "union" => TokenKind::KwUnion,
-            "unsigned" => TokenKind::KwUnsigned,
-            "void" => TokenKind::KwVoid,
-            "volatile" => TokenKind::KwVolatile,
-            "while" => TokenKind::KwWhile,
-            "_Alignas" => TokenKind::KwAlignas,
-            "_Alignof" => TokenKind::KwAlignof,
-            "_Atomic" => TokenKind::KwAtomic,
-            "_Bool" => TokenKind::KwBool,
-            "_Complex" => TokenKind::KwComplex,
-            "_Generic" => TokenKind::KwGeneric,
-            "_Imaginary" => TokenKind::KwImaginary,
-            "_Noreturn" => TokenKind::KwNoreturn,
-            "_Static_assert" => TokenKind::KwStaticAssert,
-            "_Thread_local" => TokenKind::KwThreadLocal,
-            _ => TokenKind::Identifier,
+        match get_keyword_kind_for_lexeme(&lexeme_buffer) {
+            Some(keyword_kind) => keyword_kind,
+            None => TokenKind::Identifier,
         }
     }
+}
+
+// TODO: Test.
+fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
+    let keyword_kind = match lexeme {
+        "auto" => TokenKind::KwAuto,
+        "break" => TokenKind::KwBreak,
+        "case" => TokenKind::KwCase,
+        "char" => TokenKind::KwChar,
+        "const" => TokenKind::KwConst,
+        "continue" => TokenKind::KwContinue,
+        "default" => TokenKind::KwDefault,
+        "do" => TokenKind::KwDo,
+        "double" => TokenKind::KwDouble,
+        "else" => TokenKind::KwElse,
+        "enum" => TokenKind::KwEnum,
+        "extern" => TokenKind::KwExtern,
+        "float" => TokenKind::KwFloat,
+        "for" => TokenKind::KwFor,
+        "goto" => TokenKind::KwGoto,
+        "if" => TokenKind::KwIf,
+        "inline" => TokenKind::KwInline,
+        "int" => TokenKind::KwInt,
+        "long" => TokenKind::KwLong,
+        "register" => TokenKind::KwRegister,
+        "restrict" => TokenKind::KwRestrict,
+        "return" => TokenKind::KwReturn,
+        "short" => TokenKind::KwShort,
+        "signed" => TokenKind::KwSigned,
+        "sizeof" => TokenKind::KwSizeof,
+        "static" => TokenKind::KwStatic,
+        "struct" => TokenKind::KwStruct,
+        "switch" => TokenKind::KwSwitch,
+        "typedef" => TokenKind::KwTypedef,
+        "union" => TokenKind::KwUnion,
+        "unsigned" => TokenKind::KwUnsigned,
+        "void" => TokenKind::KwVoid,
+        "volatile" => TokenKind::KwVolatile,
+        "while" => TokenKind::KwWhile,
+        "_Alignas" => TokenKind::KwAlignas,
+        "_Alignof" => TokenKind::KwAlignof,
+        "_Atomic" => TokenKind::KwAtomic,
+        "_Bool" => TokenKind::KwBool,
+        "_Complex" => TokenKind::KwComplex,
+        "_Generic" => TokenKind::KwGeneric,
+        "_Imaginary" => TokenKind::KwImaginary,
+        "_Noreturn" => TokenKind::KwNoreturn,
+        "_Static_assert" => TokenKind::KwStaticAssert,
+        "_Thread_local" => TokenKind::KwThreadLocal,
+        _ => return None,
+    };
+
+    Some(keyword_kind)
 }
 
 fn is_whitespace_char(ch: char) -> bool {
@@ -400,272 +412,263 @@ fn is_identifier_tail(ch: char) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{Bracket, Scanner, Token, TokenKind};
-    use crate::source_map::{Span, Spanned};
+    use crate::source_map::SourceFile;
+    use proptest::prelude::*;
 
     #[test]
     fn scanning_an_empty_input_should_return_an_eof_token() {
         let mut scanner = Scanner::with_input("");
 
-        let token = scanner.scan_next_token();
-
-        assert_eq!(token, Ok(Token::EOF));
-    }
-
-    // TODO: Check if we can merge this macro with `utils::assert_numeric_constants`.
-    macro_rules! test_token_kind {
-        ( $( $test_name:ident : $input_text:literal => $expected_kind:expr ,)* ) => {
-            $(
-                #[test]
-                fn $test_name() {
-                    let input_text_with_newline = format!("{}\n", $input_text);
-                    let mut scanner = Scanner::with_input(&input_text_with_newline);
-
-                    let token = scanner.scan_next_token();
-
-                    let expected_token = Token { kind: $expected_kind };
-                    let expected_span = Span::from_raw_pos(0, $input_text.len());
-
-                    assert_eq!(token, Ok(Spanned::new(expected_token, expected_span)));
-                    assert_eq!(scanner.chars.peek(), '\n');
-                }
-            )*
-        }
-    }
-
-    test_token_kind! {
-        scan_open_round_bracket: "(" => TokenKind::Open(Bracket::Round),
-        scan_closed_round_bracket: ")" => TokenKind::Closed(Bracket::Round),
-        scan_open_square_bracket: "[" => TokenKind::Open(Bracket::Square),
-        scan_closed_square_bracket: "]" => TokenKind::Closed(Bracket::Square),
-        scan_open_curly_bracket: "{" => TokenKind::Open(Bracket::Curly),
-        scan_closed_curly_bracket: "}" => TokenKind::Closed(Bracket::Curly),
-        scan_period: "." => TokenKind::Period,
-        scan_arrow: "->" => TokenKind::Arrow,
-        scan_plus_plus: "++" => TokenKind::PlusPlus,
-        scan_minus_minus: "--" => TokenKind::MinusMinus,
-        scan_ampersand: "&" => TokenKind::Ampersand,
-        scan_star: "*" => TokenKind::Star,
-        scan_plus: "+" => TokenKind::Plus,
-        scan_minus: "-" => TokenKind::Minus,
-        scan_tilde: "~" => TokenKind::Tilde,
-        scan_exclamation: "!" => TokenKind::Exclamation,
-        scan_slash: "/" => TokenKind::Slash,
-        scan_percent: "%" => TokenKind::Percent,
-        scan_less_less: "<<" => TokenKind::LessLess,
-        scan_greater_greater: ">>" => TokenKind::GreaterGreater,
-        scan_less: "<" => TokenKind::Less,
-        scan_greater: ">" => TokenKind::Greater,
-        scan_less_equal: "<=" => TokenKind::LessEqual,
-        scan_greater_equal: ">=" => TokenKind::GreaterEqual,
-        scan_equal_equal: "==" => TokenKind::EqualEqual,
-        scan_excla_equal: "!=" => TokenKind::ExclaEqual,
-        scan_caret: "^" => TokenKind::Caret,
-        scan_pipe: "|" => TokenKind::Pipe,
-        scan_amp_amp: "&&" => TokenKind::AmpAmp,
-        scan_pipe_pipe: "||" => TokenKind::PipePipe,
-        scan_question: "?" => TokenKind::Question,
-        scan_colon: ":" => TokenKind::Colon,
-        scan_semicolon: ";" => TokenKind::Semicolon,
-        scan_ellipsis: "..." => TokenKind::Ellipsis,
-        scan_equal: "=" => TokenKind::Equal,
-        scan_star_equal: "*=" => TokenKind::StarEqual,
-        scan_slash_equal: "/=" => TokenKind::SlashEqual,
-        scan_percent_equal: "%=" => TokenKind::PercentEqual,
-        scan_plus_equal: "+=" => TokenKind::PlusEqual,
-        scan_minus_equal: "-=" => TokenKind::MinusEqual,
-        scan_less_less_equal: "<<=" => TokenKind::LessLessEqual,
-        scan_greater_greater_equal: ">>=" => TokenKind::GreaterGreaterEqual,
-        scan_amp_equal: "&=" => TokenKind::AmpEqual,
-        scan_caret_equal: "^=" => TokenKind::CaretEqual,
-        scan_pipe_equal: "|=" => TokenKind::PipeEqual,
-        scan_comma: "," => TokenKind::Comma,
-        scan_hash: "#" => TokenKind::Hash,
-        scan_hash_hash: "##" => TokenKind::HashHash,
-        scan_keyword_auto: "auto" => TokenKind::KwAuto,
-        scan_keyword_break: "break" => TokenKind::KwBreak,
-        scan_keyword_case: "case" => TokenKind::KwCase,
-        scan_keyword_char: "char" => TokenKind::KwChar,
-        scan_keyword_const: "const" => TokenKind::KwConst,
-        scan_keyword_continue: "continue" => TokenKind::KwContinue,
-        scan_keyword_default: "default" => TokenKind::KwDefault,
-        scan_keyword_do: "do" => TokenKind::KwDo,
-        scan_keyword_double: "double" => TokenKind::KwDouble,
-        scan_keyword_else: "else" => TokenKind::KwElse,
-        scan_keyword_enum: "enum" => TokenKind::KwEnum,
-        scan_keyword_extern: "extern" => TokenKind::KwExtern,
-        scan_keyword_float: "float" => TokenKind::KwFloat,
-        scan_keyword_for: "for" => TokenKind::KwFor,
-        scan_keyword_goto: "goto" => TokenKind::KwGoto,
-        scan_keyword_if: "if" => TokenKind::KwIf,
-        scan_keyword_inline: "inline" => TokenKind::KwInline,
-        scan_keyword_int: "int" => TokenKind::KwInt,
-        scan_keyword_long: "long" => TokenKind::KwLong,
-        scan_keyword_register: "register" => TokenKind::KwRegister,
-        scan_keyword_restrict: "restrict" => TokenKind::KwRestrict,
-        scan_keyword_return: "return" => TokenKind::KwReturn,
-        scan_keyword_short: "short" => TokenKind::KwShort,
-        scan_keyword_signed: "signed" => TokenKind::KwSigned,
-        scan_keyword_sizeof: "sizeof" => TokenKind::KwSizeof,
-        scan_keyword_static: "static" => TokenKind::KwStatic,
-        scan_keyword_struct: "struct" => TokenKind::KwStruct,
-        scan_keyword_switch: "switch" => TokenKind::KwSwitch,
-        scan_keyword_typedef: "typedef" => TokenKind::KwTypedef,
-        scan_keyword_union: "union" => TokenKind::KwUnion,
-        scan_keyword_unsigned: "unsigned" => TokenKind::KwUnsigned,
-        scan_keyword_void: "void" => TokenKind::KwVoid,
-        scan_keyword_volatile: "volatile" => TokenKind::KwVolatile,
-        scan_keyword_while: "while" => TokenKind::KwWhile,
-        scan_keyword_alignas: "_Alignas" => TokenKind::KwAlignas,
-        scan_keyword_alignof: "_Alignof" => TokenKind::KwAlignof,
-        scan_keyword_atomic: "_Atomic" => TokenKind::KwAtomic,
-        scan_keyword_bool: "_Bool" => TokenKind::KwBool,
-        scan_keyword_complex: "_Complex" => TokenKind::KwComplex,
-        scan_keyword_generic: "_Generic" => TokenKind::KwGeneric,
-        scan_keyword_imaginary: "_Imaginary" => TokenKind::KwImaginary,
-        scan_keyword_noreturn: "_Noreturn" => TokenKind::KwNoreturn,
-        scan_keyword_static_assert: "_Static_assert" => TokenKind::KwStaticAssert,
-        scan_keyword_thread_local: "_Thread_local" => TokenKind::KwThreadLocal,
-    }
-
-    #[test]
-    fn two_adjacent_period_chars_should_be_scanned_as_two_separate_period_operators() {
-        let mut scanner = Scanner::with_input("..");
-
-        assert_eq!(
-            scanner.scan_next_token().unwrap(),
-            Spanned::new(
-                Token {
-                    kind: TokenKind::Period
-                },
-                Span::from_raw_pos(0, 1),
-            )
-        );
-
-        assert_eq!(
-            scanner.scan_next_token().unwrap(),
-            Spanned::new(
-                Token {
-                    kind: TokenKind::Period
-                },
-                Span::from_raw_pos(1, 2),
-            )
-        );
-
         assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
     }
 
     #[test]
-    fn sequence_of_nondigit_identifier_chars_should_be_scanned_as_identifier() {
-        let mut scanner =
-            Scanner::with_input("_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-        let num_nondigits = 1 + 26 * 2;
-
-        let token = scanner.scan_next_token().unwrap();
-
+    fn scan_punctuations() {
         assert_eq!(
-            token,
-            Spanned::new(
-                Token {
-                    kind: TokenKind::Identifier
-                },
-                Span::from_raw_pos(0, num_nondigits),
-            )
+            scan_first_token(")"),
+            (TokenKind::Closed(Bracket::Round), ")")
+        );
+        assert_eq!(
+            scan_first_token("["),
+            (TokenKind::Open(Bracket::Square), "[")
+        );
+        assert_eq!(
+            scan_first_token("]"),
+            (TokenKind::Closed(Bracket::Square), "]")
+        );
+        assert_eq!(
+            scan_first_token("{"),
+            (TokenKind::Open(Bracket::Curly), "{")
+        );
+        assert_eq!(
+            scan_first_token("}"),
+            (TokenKind::Closed(Bracket::Curly), "}")
+        );
+        assert_eq!(scan_first_token("."), (TokenKind::Period, "."));
+        assert_eq!(scan_first_token("->"), (TokenKind::Arrow, "->"));
+        assert_eq!(scan_first_token("++"), (TokenKind::PlusPlus, "++"));
+        assert_eq!(scan_first_token("--"), (TokenKind::MinusMinus, "--"));
+        assert_eq!(scan_first_token("&"), (TokenKind::Ampersand, "&"));
+        assert_eq!(scan_first_token("*"), (TokenKind::Star, "*"));
+        assert_eq!(scan_first_token("+"), (TokenKind::Plus, "+"));
+        assert_eq!(scan_first_token("-"), (TokenKind::Minus, "-"));
+        assert_eq!(scan_first_token("~"), (TokenKind::Tilde, "~"));
+        assert_eq!(scan_first_token("!"), (TokenKind::Exclamation, "!"));
+        assert_eq!(scan_first_token("/"), (TokenKind::Slash, "/"));
+        assert_eq!(scan_first_token("%"), (TokenKind::Percent, "%"));
+        assert_eq!(scan_first_token("<<"), (TokenKind::LessLess, "<<"));
+        assert_eq!(scan_first_token(">>"), (TokenKind::GreaterGreater, ">>"));
+        assert_eq!(scan_first_token("<"), (TokenKind::Less, "<"));
+        assert_eq!(scan_first_token(">"), (TokenKind::Greater, ">"));
+        assert_eq!(scan_first_token("<="), (TokenKind::LessEqual, "<="));
+        assert_eq!(scan_first_token(">="), (TokenKind::GreaterEqual, ">="));
+        assert_eq!(scan_first_token("=="), (TokenKind::EqualEqual, "=="));
+        assert_eq!(scan_first_token("!="), (TokenKind::ExclaEqual, "!="));
+        assert_eq!(scan_first_token("^"), (TokenKind::Caret, "^"));
+        assert_eq!(scan_first_token("|"), (TokenKind::Pipe, "|"));
+        assert_eq!(scan_first_token("&&"), (TokenKind::AmpAmp, "&&"));
+        assert_eq!(scan_first_token("||"), (TokenKind::PipePipe, "||"));
+        assert_eq!(scan_first_token("?"), (TokenKind::Question, "?"));
+        assert_eq!(scan_first_token(":"), (TokenKind::Colon, ":"));
+        assert_eq!(scan_first_token(";"), (TokenKind::Semicolon, ";"));
+        assert_eq!(scan_first_token("..."), (TokenKind::Ellipsis, "..."));
+        assert_eq!(scan_first_token("="), (TokenKind::Equal, "="));
+        assert_eq!(scan_first_token("*="), (TokenKind::StarEqual, "*="));
+        assert_eq!(scan_first_token("/="), (TokenKind::SlashEqual, "/="));
+        assert_eq!(scan_first_token("%="), (TokenKind::PercentEqual, "%="));
+        assert_eq!(scan_first_token("+="), (TokenKind::PlusEqual, "+="));
+        assert_eq!(scan_first_token("-="), (TokenKind::MinusEqual, "-="));
+        assert_eq!(scan_first_token("<<="), (TokenKind::LessLessEqual, "<<="));
+        assert_eq!(
+            scan_first_token(">>="),
+            (TokenKind::GreaterGreaterEqual, ">>=")
+        );
+        assert_eq!(scan_first_token("&="), (TokenKind::AmpEqual, "&="));
+        assert_eq!(scan_first_token("^="), (TokenKind::CaretEqual, "^="));
+        assert_eq!(scan_first_token("|="), (TokenKind::PipeEqual, "|="));
+        assert_eq!(scan_first_token(","), (TokenKind::Comma, ","));
+        assert_eq!(scan_first_token("#"), (TokenKind::Hash, "#"));
+        assert_eq!(scan_first_token("##"), (TokenKind::HashHash, "##"));
+    }
+
+    #[test]
+    fn scan_keywords() {
+        assert_eq!(scan_first_token("auto"), (TokenKind::KwAuto, "auto"));
+        assert_eq!(scan_first_token("break"), (TokenKind::KwBreak, "break"));
+        assert_eq!(scan_first_token("case"), (TokenKind::KwCase, "case"));
+        assert_eq!(scan_first_token("char"), (TokenKind::KwChar, "char"));
+        assert_eq!(scan_first_token("const"), (TokenKind::KwConst, "const"));
+        assert_eq!(
+            scan_first_token("continue"),
+            (TokenKind::KwContinue, "continue")
+        );
+        assert_eq!(
+            scan_first_token("default"),
+            (TokenKind::KwDefault, "default")
+        );
+        assert_eq!(scan_first_token("do"), (TokenKind::KwDo, "do"));
+        assert_eq!(scan_first_token("double"), (TokenKind::KwDouble, "double"));
+        assert_eq!(scan_first_token("else"), (TokenKind::KwElse, "else"));
+        assert_eq!(scan_first_token("enum"), (TokenKind::KwEnum, "enum"));
+        assert_eq!(scan_first_token("extern"), (TokenKind::KwExtern, "extern"));
+        assert_eq!(scan_first_token("float"), (TokenKind::KwFloat, "float"));
+        assert_eq!(scan_first_token("for"), (TokenKind::KwFor, "for"));
+        assert_eq!(scan_first_token("goto"), (TokenKind::KwGoto, "goto"));
+        assert_eq!(scan_first_token("if"), (TokenKind::KwIf, "if"));
+        assert_eq!(scan_first_token("inline"), (TokenKind::KwInline, "inline"));
+        assert_eq!(scan_first_token("int"), (TokenKind::KwInt, "int"));
+        assert_eq!(scan_first_token("long"), (TokenKind::KwLong, "long"));
+        assert_eq!(
+            scan_first_token("register"),
+            (TokenKind::KwRegister, "register")
+        );
+        assert_eq!(
+            scan_first_token("restrict"),
+            (TokenKind::KwRestrict, "restrict")
+        );
+        assert_eq!(scan_first_token("return"), (TokenKind::KwReturn, "return"));
+        assert_eq!(scan_first_token("short"), (TokenKind::KwShort, "short"));
+        assert_eq!(scan_first_token("signed"), (TokenKind::KwSigned, "signed"));
+        assert_eq!(scan_first_token("sizeof"), (TokenKind::KwSizeof, "sizeof"));
+        assert_eq!(scan_first_token("static"), (TokenKind::KwStatic, "static"));
+        assert_eq!(scan_first_token("struct"), (TokenKind::KwStruct, "struct"));
+        assert_eq!(scan_first_token("switch"), (TokenKind::KwSwitch, "switch"));
+        assert_eq!(
+            scan_first_token("typedef"),
+            (TokenKind::KwTypedef, "typedef")
+        );
+        assert_eq!(scan_first_token("union"), (TokenKind::KwUnion, "union"));
+        assert_eq!(
+            scan_first_token("unsigned"),
+            (TokenKind::KwUnsigned, "unsigned")
+        );
+        assert_eq!(scan_first_token("void"), (TokenKind::KwVoid, "void"));
+        assert_eq!(
+            scan_first_token("volatile"),
+            (TokenKind::KwVolatile, "volatile")
+        );
+        assert_eq!(scan_first_token("while"), (TokenKind::KwWhile, "while"));
+        assert_eq!(
+            scan_first_token("_Alignas"),
+            (TokenKind::KwAlignas, "_Alignas")
+        );
+        assert_eq!(
+            scan_first_token("_Alignof"),
+            (TokenKind::KwAlignof, "_Alignof")
+        );
+        assert_eq!(
+            scan_first_token("_Atomic"),
+            (TokenKind::KwAtomic, "_Atomic")
+        );
+        assert_eq!(scan_first_token("_Bool"), (TokenKind::KwBool, "_Bool"));
+        assert_eq!(
+            scan_first_token("_Complex"),
+            (TokenKind::KwComplex, "_Complex")
+        );
+        assert_eq!(
+            scan_first_token("_Generic"),
+            (TokenKind::KwGeneric, "_Generic")
+        );
+        assert_eq!(
+            scan_first_token("_Imaginary"),
+            (TokenKind::KwImaginary, "_Imaginary")
+        );
+        assert_eq!(
+            scan_first_token("_Noreturn"),
+            (TokenKind::KwNoreturn, "_Noreturn")
+        );
+        assert_eq!(
+            scan_first_token("_Static_assert"),
+            (TokenKind::KwStaticAssert, "_Static_assert")
+        );
+        assert_eq!(
+            scan_first_token("_Thread_local"),
+            (TokenKind::KwThreadLocal, "_Thread_local")
         );
     }
 
     #[test]
-    fn identifiers_can_be_made_of_only_one_nondigit_identifier_char() {
-        let nondigit_chars = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".chars();
-
-        for nondigit_char in nondigit_chars {
-            let text_input = format!("{}", nondigit_char);
-            let mut scanner = Scanner::with_input(&text_input);
-
-            let token = scanner.scan_next_token();
-
-            let expected_token = Spanned::new(
-                Token {
-                    kind: TokenKind::Identifier,
-                },
-                Span::from_raw_pos(0, 1),
-            );
-
-            assert_eq!(
-                token,
-                Ok(expected_token),
-                "scanned input: `{}`",
-                nondigit_char
-            );
-        }
+    fn scan_two_adjacent_period_chars_as_two_separate_period_punctuations() {
+        assert_eq!(
+            scan_tokens(".."),
+            [(TokenKind::Period, "."), (TokenKind::Period, ".")]
+        );
     }
 
     #[test]
-    fn nondigit_char_followed_by_digit_chars_should_be_scanned_as_identifier() {
-        let nondigit_chars = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".chars();
-        let digits = "0123456789";
+    fn scan_single_nondigit_char_as_identifier() {
+        use std::iter::once;
+
+        let nondigit_chars = once('_').chain('a'..='z').chain('A'..='Z');
 
         for nondigit_char in nondigit_chars {
-            // Note that the ending newline in the input is important to make this
-            // test check that the scanner indeed consumes digits, otherwise it could
-            // just scan until EOF, which isn't what we want.
-            let text_input = format!("{}{}\n", nondigit_char, digits);
-            let mut scanner = Scanner::with_input(&text_input);
+            let input_text = format!("{}", nondigit_char);
+            let token = scan_first_token(&input_text);
 
-            let token = scanner.scan_next_token();
-
-            let expected_token = Spanned::new(
-                Token {
-                    kind: TokenKind::Identifier,
-                },
-                Span::from_raw_pos(0, 1 + digits.len()),
-            );
-
-            assert_eq!(token, Ok(expected_token), "scanned input: `{}`", text_input);
+            assert_eq!(token, (TokenKind::Identifier, &*input_text));
         }
     }
 
-    macro_rules! assert_token_sequence {
-        ( input_text: $input_text:literal, expected_tokens: $( <$kind:expr, $lexeme:literal>, )+ ) => {
-            use crate::source_map::SourceFile;
+    fn identifier() -> impl Strategy<Value = String> {
+        use super::get_keyword_kind_for_lexeme;
 
-            let input_text = format!("{}\n", $input_text);
-            let mut scanner = Scanner::with_input(&input_text);
-            let source_file = SourceFile::new(&input_text);
+        let ident = proptest::string::string_regex("[_a-zA-Z][_0-9a-zA-Z]*").unwrap();
 
-            $(
-                let token = scanner.scan_next_token().unwrap();
-
-                let expected_token = Token {
-                    kind: $kind,
-                };
-
-                assert_eq!(*token, expected_token, "lexeme: `{}`", $lexeme);
-                assert_eq!(source_file.get_text_snippet(token), $lexeme);
-            )+
-
-            assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
-        };
+        ident.prop_filter("must not be a keyword", |ident| {
+            get_keyword_kind_for_lexeme(ident).is_none()
+        })
     }
 
+    prop_compose! {
+        fn non_identifier_chars()(non_ident in "[^_0-9a-zA-Z]+") -> String {
+            non_ident
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn scan_valid_identifier(input_text in identifier()) {
+            let input_text = input_text.as_str();
+            let tokens = scan_tokens(input_text);
+
+            assert_eq!(tokens, [(TokenKind::Identifier, input_text)]);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn scan_identifier_until_it_reaches_a_non_identifier_char(
+            ident in identifier(),
+            non_ident in non_identifier_chars()
+        ) {
+            let input_text = format!("{}{}", ident, non_ident);
+            let token = scan_first_token(&input_text);
+
+            assert_eq!(token, (TokenKind::Identifier, &*ident));
+        }
+    }
+
+    // TODO: Remove.
     #[test]
     fn scanning_of_identifiers_should_stop_at_a_non_identifier_char() {
-        assert_token_sequence! {
-            input_text: "foo1 bar2",
-            expected_tokens:
-                <TokenKind::Identifier, "foo1">,
-                <TokenKind::Identifier, "bar2">,
-        }
+        assert_eq!(
+            scan_tokens("foo1 bar2"),
+            [
+                (TokenKind::Identifier, "foo1"),
+                (TokenKind::Identifier, "bar2"),
+            ]
+        );
     }
 
-    // TODO: Test that multiple calls to scan_next_token ignores whitespace.
     #[test]
     fn whitespace_at_the_start_of_the_input_should_be_ignored_when_scanned() {
-        assert_token_sequence! {
-            input_text: " \t\n\r\x0b\x0cfoo \t\n\rbar\x0b\x0c",
-            expected_tokens:
-                <TokenKind::Identifier, "foo">,
-                <TokenKind::Identifier, "bar">,
-        }
+        assert_eq!(
+            scan_tokens(" \t\n\r\x0b\x0cfoo \t\n\rbar\x0b\x0c"),
+            [
+                (TokenKind::Identifier, "foo"),
+                (TokenKind::Identifier, "bar"),
+            ]
+        );
     }
 
     #[test]
@@ -689,7 +692,7 @@ mod tests {
 
     #[test]
     fn sequence_of_one_or_more_ascii_digits_should_be_scanned_as_numeric_constant() {
-        utils::assert_numeric_constants(&[
+        assert_numeric_constants(&[
             "1234567890",
             "2340056",
             "352",
@@ -717,7 +720,7 @@ mod tests {
 
     #[test]
     fn digits_with_alphanumeric_chars_mixed_in_should_be_scanned_as_a_numeric_constant() {
-        utils::assert_numeric_constants(&[
+        assert_numeric_constants(&[
             "123abc",
             "1a",
             "000i",
@@ -729,7 +732,7 @@ mod tests {
 
     #[test]
     fn digits_with_scientific_notation_should_be_scanned_as_a_numeric_constant() {
-        utils::assert_numeric_constants(&[
+        assert_numeric_constants(&[
             "123e0456",
             "123e+0456",
             "123e-0456",
@@ -741,49 +744,92 @@ mod tests {
 
     #[test]
     fn numeric_constants_stop_being_scanned_after_reaching_a_punctuation() {
-        assert_token_sequence! {
-            input_text: "12345+6789-567",
-            expected_tokens:
-                <TokenKind::NumericConstant, "12345">,
-                <TokenKind::Plus, "+">,
-                <TokenKind::NumericConstant, "6789">,
-                <TokenKind::Minus, "-">,
-                <TokenKind::NumericConstant, "567">,
+        assert_eq!(
+            scan_tokens("12345+6789-567"),
+            [
+                (TokenKind::NumericConstant, "12345"),
+                (TokenKind::Plus, "+"),
+                (TokenKind::NumericConstant, "6789"),
+                (TokenKind::Minus, "-"),
+                (TokenKind::NumericConstant, "567"),
+            ]
+        );
+    }
+
+    fn assert_numeric_constants(numeric_constants: &[&str]) {
+        let input_text = format!("{}\n", numeric_constants.join(" "));
+
+        let mut scanner = Scanner::with_input(&input_text);
+        let source_file = SourceFile::new(&input_text);
+
+        for &decimal_digit_seq in numeric_constants {
+            let token = scanner.scan_next_token().unwrap();
+
+            let expected_token = Token {
+                kind: TokenKind::NumericConstant,
+            };
+
+            assert_eq!(
+                *token, expected_token,
+                "numeric constant: `{}`",
+                decimal_digit_seq
+            );
+
+            assert_eq!(
+                source_file.get_text_snippet(token),
+                decimal_digit_seq,
+                "numeric constant: `{}`",
+                decimal_digit_seq
+            );
         }
     }
 
-    mod utils {
-        use crate::{
-            scanner::{Scanner, Token, TokenKind},
-            source_map::SourceFile,
-        };
+    struct TokenIter<'input> {
+        scanner: Scanner<'input>,
+        source_file: SourceFile<'input>,
+    }
 
-        pub(super) fn assert_numeric_constants(numeric_constants: &[&str]) {
-            let input_text = format!("{}\n", numeric_constants.join(" "));
+    impl<'input> TokenIter<'input> {
+        fn new(input_text: &'input str) -> TokenIter<'input> {
+            let scanner = Scanner::with_input(input_text);
+            let source_file = SourceFile::new(input_text);
 
-            let mut scanner = Scanner::with_input(&input_text);
-            let source_file = SourceFile::new(&input_text);
-
-            for &decimal_digit_seq in numeric_constants {
-                let token = scanner.scan_next_token().unwrap();
-
-                let expected_token = Token {
-                    kind: TokenKind::NumericConstant,
-                };
-
-                assert_eq!(
-                    *token, expected_token,
-                    "numeric constant: `{}`",
-                    decimal_digit_seq
-                );
-
-                assert_eq!(
-                    source_file.get_text_snippet(token),
-                    decimal_digit_seq,
-                    "numeric constant: `{}`",
-                    decimal_digit_seq
-                );
+            TokenIter {
+                scanner,
+                source_file,
             }
         }
+    }
+
+    impl<'input> Iterator for TokenIter<'input> {
+        type Item = (TokenKind, &'input str);
+
+        fn next(&mut self) -> Option<(TokenKind, &'input str)> {
+            // TODO(feroldi): What to do when not Ok(_)?
+            if let Ok(token) = self.scanner.scan_next_token() {
+                if token != Token::EOF {
+                    let span_text = self.source_file.get_text_snippet(token);
+                    return Some((token.kind, span_text));
+                }
+            }
+
+            None
+        }
+    }
+
+    fn scan_tokens(input_text: &str) -> Vec<(TokenKind, &str)> {
+        let tok_iter = TokenIter::new(input_text);
+        let mut tokens = Vec::new();
+
+        for tok in tok_iter {
+            tokens.push(tok);
+        }
+
+        tokens
+    }
+
+    fn scan_first_token(input_text: &str) -> (TokenKind, &str) {
+        let mut tok_stream = TokenIter::new(input_text);
+        tok_stream.next().unwrap()
     }
 }
