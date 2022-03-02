@@ -788,12 +788,9 @@ mod tests {
 
     impl<'input> TokenKindAndLexemeIter<'input> {
         fn new(input_text: &'input str) -> TokenKindAndLexemeIter<'input> {
-            let scanner = Scanner::with_input(input_text);
-            let source_file = SourceFile::new(input_text);
-
             TokenKindAndLexemeIter {
-                scanner,
-                source_file,
+                scanner: Scanner::with_input(input_text),
+                source_file: SourceFile::new(input_text),
             }
         }
     }
@@ -805,8 +802,8 @@ mod tests {
             // TODO(feroldi): What to do when not Ok(_)?
             if let Ok(token) = self.scanner.scan_next_token() {
                 if token != Token::EOF {
-                    let span_text = self.source_file.get_text_snippet(token);
-                    return Some((token.kind, span_text));
+                    let lexeme = self.source_file.get_text_snippet(token);
+                    return Some((token.kind, lexeme));
                 }
             }
 
@@ -815,18 +812,10 @@ mod tests {
     }
 
     fn scan_tokens(input_text: &str) -> Vec<(TokenKind, &str)> {
-        let tok_iter = TokenKindAndLexemeIter::new(input_text);
-        let mut tokens = Vec::new();
-
-        for tok in tok_iter {
-            tokens.push(tok);
-        }
-
-        tokens
+        TokenKindAndLexemeIter::new(input_text).collect::<Vec<_>>()
     }
 
     fn scan_first_token(input_text: &str) -> (TokenKind, &str) {
-        let mut tok_stream = TokenKindAndLexemeIter::new(input_text);
-        tok_stream.next().unwrap()
+        TokenKindAndLexemeIter::new(input_text).next().unwrap()
     }
 }
