@@ -421,165 +421,111 @@ mod tests {
 
     #[test]
     fn scan_punctuations() {
-        assert_eq!(
-            scan_first_token(")"),
-            (TokenKind::Closed(Bracket::Round), ")")
-        );
-        assert_eq!(
-            scan_first_token("["),
-            (TokenKind::Open(Bracket::Square), "[")
-        );
-        assert_eq!(
-            scan_first_token("]"),
-            (TokenKind::Closed(Bracket::Square), "]")
-        );
-        assert_eq!(
-            scan_first_token("{"),
-            (TokenKind::Open(Bracket::Curly), "{")
-        );
-        assert_eq!(
-            scan_first_token("}"),
-            (TokenKind::Closed(Bracket::Curly), "}")
-        );
-        assert_eq!(scan_first_token("."), (TokenKind::Period, "."));
-        assert_eq!(scan_first_token("->"), (TokenKind::Arrow, "->"));
-        assert_eq!(scan_first_token("++"), (TokenKind::PlusPlus, "++"));
-        assert_eq!(scan_first_token("--"), (TokenKind::MinusMinus, "--"));
-        assert_eq!(scan_first_token("&"), (TokenKind::Ampersand, "&"));
-        assert_eq!(scan_first_token("*"), (TokenKind::Star, "*"));
-        assert_eq!(scan_first_token("+"), (TokenKind::Plus, "+"));
-        assert_eq!(scan_first_token("-"), (TokenKind::Minus, "-"));
-        assert_eq!(scan_first_token("~"), (TokenKind::Tilde, "~"));
-        assert_eq!(scan_first_token("!"), (TokenKind::Exclamation, "!"));
-        assert_eq!(scan_first_token("/"), (TokenKind::Slash, "/"));
-        assert_eq!(scan_first_token("%"), (TokenKind::Percent, "%"));
-        assert_eq!(scan_first_token("<<"), (TokenKind::LessLess, "<<"));
-        assert_eq!(scan_first_token(">>"), (TokenKind::GreaterGreater, ">>"));
-        assert_eq!(scan_first_token("<"), (TokenKind::Less, "<"));
-        assert_eq!(scan_first_token(">"), (TokenKind::Greater, ">"));
-        assert_eq!(scan_first_token("<="), (TokenKind::LessEqual, "<="));
-        assert_eq!(scan_first_token(">="), (TokenKind::GreaterEqual, ">="));
-        assert_eq!(scan_first_token("=="), (TokenKind::EqualEqual, "=="));
-        assert_eq!(scan_first_token("!="), (TokenKind::ExclaEqual, "!="));
-        assert_eq!(scan_first_token("^"), (TokenKind::Caret, "^"));
-        assert_eq!(scan_first_token("|"), (TokenKind::Pipe, "|"));
-        assert_eq!(scan_first_token("&&"), (TokenKind::AmpAmp, "&&"));
-        assert_eq!(scan_first_token("||"), (TokenKind::PipePipe, "||"));
-        assert_eq!(scan_first_token("?"), (TokenKind::Question, "?"));
-        assert_eq!(scan_first_token(":"), (TokenKind::Colon, ":"));
-        assert_eq!(scan_first_token(";"), (TokenKind::Semicolon, ";"));
-        assert_eq!(scan_first_token("..."), (TokenKind::Ellipsis, "..."));
-        assert_eq!(scan_first_token("="), (TokenKind::Equal, "="));
-        assert_eq!(scan_first_token("*="), (TokenKind::StarEqual, "*="));
-        assert_eq!(scan_first_token("/="), (TokenKind::SlashEqual, "/="));
-        assert_eq!(scan_first_token("%="), (TokenKind::PercentEqual, "%="));
-        assert_eq!(scan_first_token("+="), (TokenKind::PlusEqual, "+="));
-        assert_eq!(scan_first_token("-="), (TokenKind::MinusEqual, "-="));
-        assert_eq!(scan_first_token("<<="), (TokenKind::LessLessEqual, "<<="));
-        assert_eq!(
-            scan_first_token(">>="),
-            (TokenKind::GreaterGreaterEqual, ">>=")
-        );
-        assert_eq!(scan_first_token("&="), (TokenKind::AmpEqual, "&="));
-        assert_eq!(scan_first_token("^="), (TokenKind::CaretEqual, "^="));
-        assert_eq!(scan_first_token("|="), (TokenKind::PipeEqual, "|="));
-        assert_eq!(scan_first_token(","), (TokenKind::Comma, ","));
-        assert_eq!(scan_first_token("#"), (TokenKind::Hash, "#"));
-        assert_eq!(scan_first_token("##"), (TokenKind::HashHash, "##"));
+        assert_eq!(scan_first(")"), (TokenKind::Closed(Bracket::Round), ")"));
+        assert_eq!(scan_first("["), (TokenKind::Open(Bracket::Square), "["));
+        assert_eq!(scan_first("]"), (TokenKind::Closed(Bracket::Square), "]"));
+        assert_eq!(scan_first("{"), (TokenKind::Open(Bracket::Curly), "{"));
+        assert_eq!(scan_first("}"), (TokenKind::Closed(Bracket::Curly), "}"));
+        assert_eq!(scan_first("."), (TokenKind::Period, "."));
+        assert_eq!(scan_first("->"), (TokenKind::Arrow, "->"));
+        assert_eq!(scan_first("++"), (TokenKind::PlusPlus, "++"));
+        assert_eq!(scan_first("--"), (TokenKind::MinusMinus, "--"));
+        assert_eq!(scan_first("&"), (TokenKind::Ampersand, "&"));
+        assert_eq!(scan_first("*"), (TokenKind::Star, "*"));
+        assert_eq!(scan_first("+"), (TokenKind::Plus, "+"));
+        assert_eq!(scan_first("-"), (TokenKind::Minus, "-"));
+        assert_eq!(scan_first("~"), (TokenKind::Tilde, "~"));
+        assert_eq!(scan_first("!"), (TokenKind::Exclamation, "!"));
+        assert_eq!(scan_first("/"), (TokenKind::Slash, "/"));
+        assert_eq!(scan_first("%"), (TokenKind::Percent, "%"));
+        assert_eq!(scan_first("<<"), (TokenKind::LessLess, "<<"));
+        assert_eq!(scan_first(">>"), (TokenKind::GreaterGreater, ">>"));
+        assert_eq!(scan_first("<"), (TokenKind::Less, "<"));
+        assert_eq!(scan_first(">"), (TokenKind::Greater, ">"));
+        assert_eq!(scan_first("<="), (TokenKind::LessEqual, "<="));
+        assert_eq!(scan_first(">="), (TokenKind::GreaterEqual, ">="));
+        assert_eq!(scan_first("=="), (TokenKind::EqualEqual, "=="));
+        assert_eq!(scan_first("!="), (TokenKind::ExclaEqual, "!="));
+        assert_eq!(scan_first("^"), (TokenKind::Caret, "^"));
+        assert_eq!(scan_first("|"), (TokenKind::Pipe, "|"));
+        assert_eq!(scan_first("&&"), (TokenKind::AmpAmp, "&&"));
+        assert_eq!(scan_first("||"), (TokenKind::PipePipe, "||"));
+        assert_eq!(scan_first("?"), (TokenKind::Question, "?"));
+        assert_eq!(scan_first(":"), (TokenKind::Colon, ":"));
+        assert_eq!(scan_first(";"), (TokenKind::Semicolon, ";"));
+        assert_eq!(scan_first("..."), (TokenKind::Ellipsis, "..."));
+        assert_eq!(scan_first("="), (TokenKind::Equal, "="));
+        assert_eq!(scan_first("*="), (TokenKind::StarEqual, "*="));
+        assert_eq!(scan_first("/="), (TokenKind::SlashEqual, "/="));
+        assert_eq!(scan_first("%="), (TokenKind::PercentEqual, "%="));
+        assert_eq!(scan_first("+="), (TokenKind::PlusEqual, "+="));
+        assert_eq!(scan_first("-="), (TokenKind::MinusEqual, "-="));
+        assert_eq!(scan_first("<<="), (TokenKind::LessLessEqual, "<<="));
+        assert_eq!(scan_first(">>="), (TokenKind::GreaterGreaterEqual, ">>="));
+        assert_eq!(scan_first("&="), (TokenKind::AmpEqual, "&="));
+        assert_eq!(scan_first("^="), (TokenKind::CaretEqual, "^="));
+        assert_eq!(scan_first("|="), (TokenKind::PipeEqual, "|="));
+        assert_eq!(scan_first(","), (TokenKind::Comma, ","));
+        assert_eq!(scan_first("#"), (TokenKind::Hash, "#"));
+        assert_eq!(scan_first("##"), (TokenKind::HashHash, "##"));
     }
 
     #[test]
     fn scan_keywords() {
-        assert_eq!(scan_first_token("auto"), (TokenKind::KwAuto, "auto"));
-        assert_eq!(scan_first_token("break"), (TokenKind::KwBreak, "break"));
-        assert_eq!(scan_first_token("case"), (TokenKind::KwCase, "case"));
-        assert_eq!(scan_first_token("char"), (TokenKind::KwChar, "char"));
-        assert_eq!(scan_first_token("const"), (TokenKind::KwConst, "const"));
+        assert_eq!(scan_first("auto"), (TokenKind::KwAuto, "auto"));
+        assert_eq!(scan_first("break"), (TokenKind::KwBreak, "break"));
+        assert_eq!(scan_first("case"), (TokenKind::KwCase, "case"));
+        assert_eq!(scan_first("char"), (TokenKind::KwChar, "char"));
+        assert_eq!(scan_first("const"), (TokenKind::KwConst, "const"));
+        assert_eq!(scan_first("continue"), (TokenKind::KwContinue, "continue"));
+        assert_eq!(scan_first("default"), (TokenKind::KwDefault, "default"));
+        assert_eq!(scan_first("do"), (TokenKind::KwDo, "do"));
+        assert_eq!(scan_first("double"), (TokenKind::KwDouble, "double"));
+        assert_eq!(scan_first("else"), (TokenKind::KwElse, "else"));
+        assert_eq!(scan_first("enum"), (TokenKind::KwEnum, "enum"));
+        assert_eq!(scan_first("extern"), (TokenKind::KwExtern, "extern"));
+        assert_eq!(scan_first("float"), (TokenKind::KwFloat, "float"));
+        assert_eq!(scan_first("for"), (TokenKind::KwFor, "for"));
+        assert_eq!(scan_first("goto"), (TokenKind::KwGoto, "goto"));
+        assert_eq!(scan_first("if"), (TokenKind::KwIf, "if"));
+        assert_eq!(scan_first("inline"), (TokenKind::KwInline, "inline"));
+        assert_eq!(scan_first("int"), (TokenKind::KwInt, "int"));
+        assert_eq!(scan_first("long"), (TokenKind::KwLong, "long"));
+        assert_eq!(scan_first("register"), (TokenKind::KwRegister, "register"));
+        assert_eq!(scan_first("restrict"), (TokenKind::KwRestrict, "restrict"));
+        assert_eq!(scan_first("return"), (TokenKind::KwReturn, "return"));
+        assert_eq!(scan_first("short"), (TokenKind::KwShort, "short"));
+        assert_eq!(scan_first("signed"), (TokenKind::KwSigned, "signed"));
+        assert_eq!(scan_first("sizeof"), (TokenKind::KwSizeof, "sizeof"));
+        assert_eq!(scan_first("static"), (TokenKind::KwStatic, "static"));
+        assert_eq!(scan_first("struct"), (TokenKind::KwStruct, "struct"));
+        assert_eq!(scan_first("switch"), (TokenKind::KwSwitch, "switch"));
+        assert_eq!(scan_first("typedef"), (TokenKind::KwTypedef, "typedef"));
+        assert_eq!(scan_first("union"), (TokenKind::KwUnion, "union"));
+        assert_eq!(scan_first("unsigned"), (TokenKind::KwUnsigned, "unsigned"));
+        assert_eq!(scan_first("void"), (TokenKind::KwVoid, "void"));
+        assert_eq!(scan_first("volatile"), (TokenKind::KwVolatile, "volatile"));
+        assert_eq!(scan_first("while"), (TokenKind::KwWhile, "while"));
+        assert_eq!(scan_first("_Alignas"), (TokenKind::KwAlignas, "_Alignas"));
+        assert_eq!(scan_first("_Alignof"), (TokenKind::KwAlignof, "_Alignof"));
+        assert_eq!(scan_first("_Atomic"), (TokenKind::KwAtomic, "_Atomic"));
+        assert_eq!(scan_first("_Bool"), (TokenKind::KwBool, "_Bool"));
+        assert_eq!(scan_first("_Complex"), (TokenKind::KwComplex, "_Complex"));
+        assert_eq!(scan_first("_Generic"), (TokenKind::KwGeneric, "_Generic"));
         assert_eq!(
-            scan_first_token("continue"),
-            (TokenKind::KwContinue, "continue")
-        );
-        assert_eq!(
-            scan_first_token("default"),
-            (TokenKind::KwDefault, "default")
-        );
-        assert_eq!(scan_first_token("do"), (TokenKind::KwDo, "do"));
-        assert_eq!(scan_first_token("double"), (TokenKind::KwDouble, "double"));
-        assert_eq!(scan_first_token("else"), (TokenKind::KwElse, "else"));
-        assert_eq!(scan_first_token("enum"), (TokenKind::KwEnum, "enum"));
-        assert_eq!(scan_first_token("extern"), (TokenKind::KwExtern, "extern"));
-        assert_eq!(scan_first_token("float"), (TokenKind::KwFloat, "float"));
-        assert_eq!(scan_first_token("for"), (TokenKind::KwFor, "for"));
-        assert_eq!(scan_first_token("goto"), (TokenKind::KwGoto, "goto"));
-        assert_eq!(scan_first_token("if"), (TokenKind::KwIf, "if"));
-        assert_eq!(scan_first_token("inline"), (TokenKind::KwInline, "inline"));
-        assert_eq!(scan_first_token("int"), (TokenKind::KwInt, "int"));
-        assert_eq!(scan_first_token("long"), (TokenKind::KwLong, "long"));
-        assert_eq!(
-            scan_first_token("register"),
-            (TokenKind::KwRegister, "register")
-        );
-        assert_eq!(
-            scan_first_token("restrict"),
-            (TokenKind::KwRestrict, "restrict")
-        );
-        assert_eq!(scan_first_token("return"), (TokenKind::KwReturn, "return"));
-        assert_eq!(scan_first_token("short"), (TokenKind::KwShort, "short"));
-        assert_eq!(scan_first_token("signed"), (TokenKind::KwSigned, "signed"));
-        assert_eq!(scan_first_token("sizeof"), (TokenKind::KwSizeof, "sizeof"));
-        assert_eq!(scan_first_token("static"), (TokenKind::KwStatic, "static"));
-        assert_eq!(scan_first_token("struct"), (TokenKind::KwStruct, "struct"));
-        assert_eq!(scan_first_token("switch"), (TokenKind::KwSwitch, "switch"));
-        assert_eq!(
-            scan_first_token("typedef"),
-            (TokenKind::KwTypedef, "typedef")
-        );
-        assert_eq!(scan_first_token("union"), (TokenKind::KwUnion, "union"));
-        assert_eq!(
-            scan_first_token("unsigned"),
-            (TokenKind::KwUnsigned, "unsigned")
-        );
-        assert_eq!(scan_first_token("void"), (TokenKind::KwVoid, "void"));
-        assert_eq!(
-            scan_first_token("volatile"),
-            (TokenKind::KwVolatile, "volatile")
-        );
-        assert_eq!(scan_first_token("while"), (TokenKind::KwWhile, "while"));
-        assert_eq!(
-            scan_first_token("_Alignas"),
-            (TokenKind::KwAlignas, "_Alignas")
-        );
-        assert_eq!(
-            scan_first_token("_Alignof"),
-            (TokenKind::KwAlignof, "_Alignof")
-        );
-        assert_eq!(
-            scan_first_token("_Atomic"),
-            (TokenKind::KwAtomic, "_Atomic")
-        );
-        assert_eq!(scan_first_token("_Bool"), (TokenKind::KwBool, "_Bool"));
-        assert_eq!(
-            scan_first_token("_Complex"),
-            (TokenKind::KwComplex, "_Complex")
-        );
-        assert_eq!(
-            scan_first_token("_Generic"),
-            (TokenKind::KwGeneric, "_Generic")
-        );
-        assert_eq!(
-            scan_first_token("_Imaginary"),
+            scan_first("_Imaginary"),
             (TokenKind::KwImaginary, "_Imaginary")
         );
         assert_eq!(
-            scan_first_token("_Noreturn"),
+            scan_first("_Noreturn"),
             (TokenKind::KwNoreturn, "_Noreturn")
         );
         assert_eq!(
-            scan_first_token("_Static_assert"),
+            scan_first("_Static_assert"),
             (TokenKind::KwStaticAssert, "_Static_assert")
         );
         assert_eq!(
-            scan_first_token("_Thread_local"),
+            scan_first("_Thread_local"),
             (TokenKind::KwThreadLocal, "_Thread_local")
         );
     }
@@ -587,7 +533,7 @@ mod tests {
     #[test]
     fn scan_two_adjacent_period_chars_as_two_separate_period_punctuations() {
         assert_eq!(
-            scan_tokens(".."),
+            scan_all(".."),
             [(TokenKind::Period, "."), (TokenKind::Period, ".")]
         );
     }
@@ -600,7 +546,7 @@ mod tests {
 
         for nondigit_char in nondigit_chars {
             let input_text = format!("{}", nondigit_char);
-            let token = scan_first_token(&input_text);
+            let token = scan_first(&input_text);
 
             assert_eq!(token, (TokenKind::Identifier, &*input_text));
         }
@@ -616,19 +562,19 @@ mod tests {
         })
     }
 
-    prop_compose! {
-        fn non_identifier_chars()(non_ident in "[^_0-9a-zA-Z]+") -> String {
-            non_ident
-        }
-    }
-
     proptest! {
         #[test]
         fn scan_valid_identifier(input_text in identifier()) {
-            let input_text = input_text.as_str();
-            let tokens = scan_tokens(input_text);
+            assert_eq!(
+                scan_first(&input_text),
+                (TokenKind::Identifier, &*input_text)
+            );
+        }
+    }
 
-            assert_eq!(tokens, [(TokenKind::Identifier, input_text)]);
+    prop_compose! {
+        fn non_identifier_chars()(non_ident in "[^_0-9a-zA-Z]+") -> String {
+            non_ident
         }
     }
 
@@ -639,9 +585,11 @@ mod tests {
             non_ident in non_identifier_chars()
         ) {
             let input_text = format!("{}{}", ident, non_ident);
-            let token = scan_first_token(&input_text);
 
-            assert_eq!(token, (TokenKind::Identifier, &*ident));
+            assert_eq!(
+                scan_first(&input_text),
+                (TokenKind::Identifier, &*ident)
+            );
         }
     }
 
@@ -649,7 +597,7 @@ mod tests {
     #[test]
     fn scanning_of_identifiers_should_stop_at_a_non_identifier_char() {
         assert_eq!(
-            scan_tokens("foo1 bar2"),
+            scan_all("foo1 bar2"),
             [
                 (TokenKind::Identifier, "foo1"),
                 (TokenKind::Identifier, "bar2"),
@@ -660,7 +608,7 @@ mod tests {
     #[test]
     fn whitespace_at_the_start_of_the_input_should_be_ignored_when_scanned() {
         assert_eq!(
-            scan_tokens(" \t\n\r\x0b\x0cfoo \t\n\rbar\x0b\x0c"),
+            scan_all(" \t\n\r\x0b\x0cfoo \t\n\rbar\x0b\x0c"),
             [
                 (TokenKind::Identifier, "foo"),
                 (TokenKind::Identifier, "bar"),
@@ -742,7 +690,7 @@ mod tests {
     #[test]
     fn numeric_constants_stop_being_scanned_after_reaching_a_punctuation() {
         assert_eq!(
-            scan_tokens("12345+6789-567"),
+            scan_all("12345+6789-567"),
             [
                 (TokenKind::NumericConstant, "12345"),
                 (TokenKind::Plus, "+"),
@@ -811,11 +759,11 @@ mod tests {
         }
     }
 
-    fn scan_tokens(input_text: &str) -> Vec<(TokenKind, &str)> {
+    fn scan_all(input_text: &str) -> Vec<(TokenKind, &str)> {
         TokenKindAndLexemeIter::new(input_text).collect::<Vec<_>>()
     }
 
-    fn scan_first_token(input_text: &str) -> (TokenKind, &str) {
+    fn scan_first(input_text: &str) -> (TokenKind, &str) {
         TokenKindAndLexemeIter::new(input_text).next().unwrap()
     }
 }
