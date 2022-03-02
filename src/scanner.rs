@@ -421,6 +421,7 @@ mod tests {
 
     #[test]
     fn scan_punctuations() {
+        assert_eq!(scan_first("("), (TokenKind::Open(Bracket::Round), "("));
         assert_eq!(scan_first(")"), (TokenKind::Closed(Bracket::Round), ")"));
         assert_eq!(scan_first("["), (TokenKind::Open(Bracket::Square), "["));
         assert_eq!(scan_first("]"), (TokenKind::Closed(Bracket::Square), "]"));
