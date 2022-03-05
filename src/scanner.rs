@@ -281,8 +281,7 @@ impl Scanner<'_> {
                 let mut prev_peek = ch;
 
                 while self.chars.peek().is_ascii_alphanumeric() {
-                    prev_peek = self.chars.peek();
-                    self.chars.consume();
+                    prev_peek = self.chars.consume();
                 }
 
                 // TODO: Improve this code's readability.
