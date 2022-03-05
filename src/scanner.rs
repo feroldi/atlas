@@ -554,10 +554,11 @@ mod tests {
 
     fn identifier() -> impl Strategy<Value = String> {
         use super::get_keyword_kind_for_lexeme;
+        use proptest::string::string_regex;
 
-        let ident = proptest::string::string_regex("[_a-zA-Z][_0-9a-zA-Z]*").unwrap();
+        let ident_strategy = string_regex("[_a-zA-Z][_0-9a-zA-Z]*").unwrap();
 
-        ident.prop_filter("must not be a keyword", |ident| {
+        ident_strategy.prop_filter("must not be a keyword", |ident| {
             get_keyword_kind_for_lexeme(ident).is_none()
         })
     }
