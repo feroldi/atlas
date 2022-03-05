@@ -55,7 +55,16 @@ impl CharStream<'_> {
     pub(crate) fn consume(&mut self) -> char {
         let old_peek = self.peek();
 
-        self.peeked_char = self.chars.next().unwrap_or(CharStream::EOF_CHAR);
+        if let Some(next_char) = self.chars.next() {
+            if next_char == CharStream::EOF_CHAR {
+                // Consumes the entire iterator until the end. A NUL char marks the end
+                // of the input.
+                for _ in &mut self.chars {}
+            }
+            self.peeked_char = next_char;
+        } else {
+            self.peeked_char = CharStream::EOF_CHAR;
+        }
 
         if old_peek != CharStream::EOF_CHAR {
             self.byte_pos_of_peeked_char += BytePos::from_usize(old_peek.len_utf8());
@@ -187,6 +196,21 @@ mod tests {
         char_stream.consume();
         char_stream.consume();
 
+        assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
+    }
+
+    #[test]
+    fn consume_should_return_eof_forever_after_encountering_a_null_char_in_the_middle_of_the_input()
+    {
+        let mut char_stream = CharStream::with_text("abc\0def");
+
+        char_stream.consume();
+        char_stream.consume();
+        char_stream.consume();
+
+        assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
+        assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
+        assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
         assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
     }
 
