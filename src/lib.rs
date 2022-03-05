@@ -1,5 +1,5 @@
 #![feature(assert_matches)]
 
-mod char_stream;
+pub mod char_stream;
 pub mod scanner;
-mod source_map;
+pub mod source_map;

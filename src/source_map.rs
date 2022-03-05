@@ -1,16 +1,16 @@
 use std::assert_matches::debug_assert_matches;
 use std::ops::{Add, AddAssign};
 
-pub(crate) struct SourceFile<'a> {
+pub struct SourceFile<'a> {
     source_text: &'a str,
 }
 
 impl<'a> SourceFile<'a> {
-    pub(crate) fn new(source_text: &str) -> SourceFile {
+    pub fn new(source_text: &str) -> SourceFile {
         SourceFile { source_text }
     }
 
-    pub(crate) fn get_text_snippet(&self, span: impl Into<Span>) -> &'a str {
+    pub fn get_text_snippet(&self, span: impl Into<Span>) -> &'a str {
         let span = span.into();
         let (start_idx, end_idx) = (span.start.to_usize(), span.end.to_usize());
 
@@ -31,16 +31,16 @@ impl<'a> SourceFile<'a> {
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Spanned<T> {
-    value: T,
-    pub(crate) span: Span,
+    pub value: T,
+    pub span: Span,
 }
 
 impl<T> Spanned<T> {
-    pub(crate) fn new(value: T, span: Span) -> Spanned<T> {
+    pub fn new(value: T, span: Span) -> Spanned<T> {
         Spanned { value, span }
     }
 
-    pub(crate) const fn with_dummy_span(value: T) -> Spanned<T> {
+    pub const fn with_dummy_span(value: T) -> Spanned<T> {
         Spanned {
             value,
             span: Span::DUMMY,
@@ -66,19 +66,18 @@ impl<T> From<Spanned<T>> for Span {
 /// This is an exclusive text range as in [start, end).
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Span {
-    pub(crate) start: BytePos,
-    pub(crate) end: BytePos,
+    pub start: BytePos,
+    pub end: BytePos,
 }
 
 impl Span {
     // TODO: Should we try to normalize spans with start == end to a dummy?
-    const DUMMY: Span = Span {
+    pub const DUMMY: Span = Span {
         start: BytePos(0),
         end: BytePos(0),
     };
 
-    #[cfg(test)]
-    pub(crate) fn from_raw_pos(start: usize, end: usize) -> Span {
+    pub fn from_usizes(start: usize, end: usize) -> Span {
         debug_assert!(start <= end, "cannot have start greater than end");
 
         Span {
@@ -311,11 +310,11 @@ mod tests {
     }
 
     #[test]
-    fn span_from_raw_pos_should_create_a_span_of_byte_poses() {
+    fn span_from_usizes_should_create_a_span_of_byte_poses() {
         use super::{BytePos, Span};
 
         assert_eq!(
-            Span::from_raw_pos(123, 2949),
+            Span::from_usizes(123, 2949),
             Span {
                 start: BytePos(123),
                 end: BytePos(2949),
@@ -323,7 +322,7 @@ mod tests {
         );
 
         assert_eq!(
-            Span::from_raw_pos(3, 4),
+            Span::from_usizes(3, 4),
             Span {
                 start: BytePos(3),
                 end: BytePos(4),
@@ -331,7 +330,7 @@ mod tests {
         );
 
         assert_eq!(
-            Span::from_raw_pos(0, 0),
+            Span::from_usizes(0, 0),
             Span {
                 start: BytePos(0),
                 end: BytePos(0),
@@ -341,24 +340,24 @@ mod tests {
 
     #[test]
     #[should_panic(expected = "cannot have start greater than end")]
-    fn span_from_raw_pos_should_not_allow_start_greater_than_end() {
+    fn span_from_usizes_should_not_allow_start_greater_than_end() {
         use super::Span;
-        let _ = Span::from_raw_pos(3, 2);
+        let _ = Span::from_usizes(3, 2);
     }
 
     #[test]
     fn spanned_new_should_create_a_spanned_with_a_value_and_a_span() {
         use super::{Span, Spanned};
 
-        let spanned = Spanned::new('a', Span::from_raw_pos(34, 53));
+        let spanned = Spanned::new('a', Span::from_usizes(34, 53));
 
         assert_eq!(spanned.value, 'a');
-        assert_eq!(spanned.span, Span::from_raw_pos(34, 53));
+        assert_eq!(spanned.span, Span::from_usizes(34, 53));
 
-        let spanned = Spanned::new(42, Span::from_raw_pos(0, 3));
+        let spanned = Spanned::new(42, Span::from_usizes(0, 3));
 
         assert_eq!(spanned.value, 42);
-        assert_eq!(spanned.span, Span::from_raw_pos(0, 3));
+        assert_eq!(spanned.span, Span::from_usizes(0, 3));
 
         let spanned = Spanned::new("abc", Span::DUMMY);
 
@@ -395,7 +394,7 @@ mod tests {
             i: i32,
         }
 
-        let spanned = Spanned::new(S { i: 42 }, Span::from_raw_pos(34, 53));
+        let spanned = Spanned::new(S { i: 42 }, Span::from_usizes(34, 53));
 
         assert_eq!(*spanned, S { i: 42 });
         assert_eq!(spanned.i, 42);
@@ -424,9 +423,9 @@ mod tests {
         fn get_text_snippet_should_return_empty_string_for_empty_span() {
             let sc = SourceFile::new("hello world!\n");
 
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(2, 2)), "");
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(3, 3)), "");
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(5, 5)), "");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(2, 2)), "");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(3, 3)), "");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(5, 5)), "");
         }
 
         #[test]
@@ -434,7 +433,7 @@ mod tests {
         fn get_text_snippet_should_panic_on_out_of_bounds_spans() {
             let sc = SourceFile::new("hello world!\n");
 
-            let _ = sc.get_text_snippet(Span::from_raw_pos(14, 14));
+            let _ = sc.get_text_snippet(Span::from_usizes(14, 14));
         }
 
         #[test]
@@ -442,29 +441,29 @@ mod tests {
             let sc = SourceFile::new("hello world!\n");
 
             assert_eq!(
-                sc.get_text_snippet(Span::from_raw_pos(0, 13)),
+                sc.get_text_snippet(Span::from_usizes(0, 13)),
                 "hello world!\n"
             );
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(0, 1)), "h");
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(1, 2)), "e");
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(0, 5)), "hello");
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(6, 11)), "world");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(0, 1)), "h");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(1, 2)), "e");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(0, 5)), "hello");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(6, 11)), "world");
         }
 
         #[test]
         fn get_text_snippet_should_work_with_utf8_text() {
             let sc = SourceFile::new("🗻∈🌏");
 
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(0, 4)), "🗻");
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(4, 7)), "∈");
-            assert_eq!(sc.get_text_snippet(Span::from_raw_pos(7, 11)), "🌏");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(0, 4)), "🗻");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(4, 7)), "∈");
+            assert_eq!(sc.get_text_snippet(Span::from_usizes(7, 11)), "🌏");
         }
 
         #[test]
         #[should_panic(expected = "span is an invalid UTF-8 sequence")]
         fn get_text_snippet_should_panic_if_span_is_broken_utf8() {
             let sc = SourceFile::new("\u{0800}");
-            let _ = sc.get_text_snippet(Span::from_raw_pos(0, 1));
+            let _ = sc.get_text_snippet(Span::from_usizes(0, 1));
         }
     }
 }
