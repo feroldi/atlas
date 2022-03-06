@@ -39,6 +39,7 @@ jobs:
           command: test
         env:
           RUSTFLAGS: -C instrument-coverage
+          LLVM_PROFILE_FILE: coverage-%p-%m.profraw
 
       - name: Install coverage tool
         run: |
@@ -46,7 +47,7 @@ jobs:
           tar -xf grcov.tar.bz2
 
       - name: Collect coverage statistics
-        run: ./grcov default.profraw --source-dir . --binary-path ./target/debug/ --llvm --branch --output-type html --output-path ./coverage
+        run: ./grcov . --source-dir . --binary-path ./target/debug/ --llvm --branch --output-type html --output-path ./coverage
 
       - name: Publish coverage statistics
         uses: cpina/github-action-push-to-another-repository@main
