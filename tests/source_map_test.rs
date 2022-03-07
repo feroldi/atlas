@@ -62,6 +62,16 @@ fn span_from_usizes_should_not_allow_start_greater_than_end() {
     let _ = Span::from_usizes(3, 2);
 }
 
+#[test]
+fn span_from_spanned() {
+    struct S;
+
+    let span = Span::from_usizes(2, 7);
+    let spanned = Spanned::new(S, span);
+
+    assert_eq!(Span::from(spanned), span);
+}
+
 // TODO: Convert to property based test.
 #[test]
 fn spanned_new_should_create_a_spanned_with_a_value_and_a_span() {

@@ -56,7 +56,6 @@ impl<T> std::ops::Deref for Spanned<T> {
     }
 }
 
-// TODO: Test.
 impl<T> From<Spanned<T>> for Span {
     fn from(spanned: Spanned<T>) -> Span {
         spanned.span
