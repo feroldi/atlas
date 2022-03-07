@@ -72,8 +72,8 @@ pub struct Span {
 impl Span {
     // TODO: Should we try to normalize spans with start == end to a dummy?
     pub const DUMMY: Span = Span {
-        start: BytePos(0),
-        end: BytePos(0),
+        start: BytePos::from_usize(0),
+        end: BytePos::from_usize(0),
     };
 
     pub fn from_usizes(start: usize, end: usize) -> Span {
@@ -94,7 +94,7 @@ pub trait Pos: Sized + Add + AddAssign {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct BytePos(usize);
 
-impl Pos for BytePos {
+impl const Pos for BytePos {
     fn from_usize(value: usize) -> BytePos {
         BytePos(value)
     }
