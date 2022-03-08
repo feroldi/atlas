@@ -1,5 +1,8 @@
+#![feature(assert_matches)]
+
 use atlas::source_map::{BytePos, Pos, SourceFile, Span, Spanned};
 use proptest::prelude::*;
+use std::assert_matches::assert_matches;
 
 proptest! {
     #[test]
@@ -54,11 +57,24 @@ proptest! {
 
 proptest! {
     #[test]
-    #[should_panic(expected = "cannot have start greater than end")]
     fn span_from_usizes_should_not_allow_start_greater_than_end(start: usize, end: usize) {
         prop_assume!(start > end);
 
-        let _ = Span::from_usizes(start, end);
+        let result = std::panic::catch_unwind(|| Span::from_usizes(start, end));
+
+        assert_matches!(result, Err(_));
+    }
+}
+
+prop_compose! {
+    fn valid_span()
+                 (start in any::<usize>())
+                 (end in start.., start in Just(start))
+                 -> Span {
+        Span {
+            start: BytePos::from_usize(start),
+            end: BytePos::from_usize(end),
+        }
     }
 }
 
@@ -142,7 +158,7 @@ proptest! {
 }
 
 prop_compose! {
-    fn text_and_byte_pos()
+    fn text_and_inbounds_byte_pos()
                         (text in ".+")
                         (index in 0..text.len(), text in Just(text))
                         -> (String, BytePos) {
@@ -153,10 +169,14 @@ prop_compose! {
 proptest! {
     #[test]
     fn get_text_snippet_should_return_empty_string_for_empty_span_and_non_empty_text(
-        (text, byte_pos) in text_and_byte_pos()
+        (text, byte_pos) in text_and_inbounds_byte_pos()
     ) {
         let sf = SourceFile::new(&text);
-        let empty_span = Span { start: byte_pos, end: byte_pos };
+
+        let empty_span = Span {
+            start: byte_pos,
+            end: byte_pos
+        };
 
         assert_eq!(sf.get_text_snippet(empty_span), "");
     }
@@ -164,46 +184,53 @@ proptest! {
 
 proptest! {
     #[test]
-    #[should_panic]
     fn get_text_snippet_should_panic_if_span_is_non_dummy_and_text_is_empty(
-        span in valid_span(),
+        span in valid_span().prop_filter("no dummy", |&span| span != Span::DUMMY)
     ) {
-        prop_assume!(span != Span::DUMMY);
-
         let sf = SourceFile::new("");
+        let result = std::panic::catch_unwind(|| sf.get_text_snippet(span));
 
-        let _ = sf.get_text_snippet(span);
+        assert_matches!(result, Err(_));
     }
 }
 
 proptest! {
     #[test]
-    #[should_panic]
     fn get_text_snippet_should_panic_on_fully_out_of_bounds_span(
         text in ".+",
-        span in valid_span(),
+        span in valid_span()
     ) {
         prop_assume!(span.start.to_usize() > text.len());
 
         let sf = SourceFile::new(&text);
+        let result = std::panic::catch_unwind(|| sf.get_text_snippet(span));
 
-        let _ = sf.get_text_snippet(span);
+        assert_matches!(result, Err(_));
+    }
+}
+
+prop_compose! {
+    fn text_and_partially_out_of_bounds_span()
+            (text in ".+")
+            (
+                inbounds_index in 0..text.len(),
+                outbounds_index in text.len()..,
+                text in Just(text)
+            )
+            -> (String, Span) {
+        (text, Span::from_usizes(inbounds_index, outbounds_index))
     }
 }
 
 proptest! {
     #[test]
-    #[should_panic]
     fn get_text_snippet_should_panic_on_partially_out_of_bounds_span(
-        text in ".+",
-        span in valid_span(),
+        (text, span) in text_and_partially_out_of_bounds_span()
     ) {
-        prop_assume!(span.start.to_usize() < text.len());
-        prop_assume!(span.end.to_usize() > text.len());
-
         let sf = SourceFile::new(&text);
+        let result = std::panic::catch_unwind(|| sf.get_text_snippet(span));
 
-        let _ = sf.get_text_snippet(span);
+        assert_matches!(result, Err(_));
     }
 }
 
@@ -254,22 +281,4 @@ fn get_text_snippet_should_work_with_utf8_text() {
 fn get_text_snippet_should_panic_if_span_is_broken_utf8() {
     let sf = SourceFile::new("\u{0800}");
     let _ = sf.get_text_snippet(Span::from_usizes(0, 1));
-}
-
-prop_compose! {
-    fn byte_pos()(raw: usize) -> BytePos {
-        BytePos::from_usize(raw)
-    }
-}
-
-prop_compose! {
-    fn valid_span()
-                 (start in any::<usize>())
-                 (end in start.., start in Just(start))
-                 -> Span {
-        Span {
-            start: BytePos::from_usize(start),
-            end: BytePos::from_usize(end),
-        }
-    }
 }
