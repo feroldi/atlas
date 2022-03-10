@@ -16,9 +16,8 @@ impl<'a> SourceFile<'a> {
 
         debug_assert_matches!(
             {
-                let source_bytes = self.source_text.as_bytes();
-                let snippet_bytes = &source_bytes[start_idx..end_idx];
-                std::str::from_utf8(snippet_bytes)
+                let snippet_as_bytes = &self.source_text.as_bytes()[start_idx..end_idx];
+                std::str::from_utf8(snippet_as_bytes)
             },
             Ok(_),
             "span is an invalid UTF-8 sequence"
