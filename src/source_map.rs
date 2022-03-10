@@ -70,7 +70,6 @@ pub struct Span {
 }
 
 impl Span {
-    // TODO: Should we try to normalize spans with start == end to a dummy?
     pub const DUMMY: Span = Span {
         start: BytePos::from_usize(0),
         end: BytePos::from_usize(0),
