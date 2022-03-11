@@ -160,10 +160,8 @@ proptest! {
     }
 }
 
-prop_compose! {
-    fn non_identifier_chars()(non_ident in "[^_0-9a-zA-Z]+") -> String {
-        non_ident
-    }
+fn non_identifier_chars() -> impl Strategy<Value = String> {
+    string_regex("[^_0-9a-zA-Z]+").unwrap()
 }
 
 proptest! {

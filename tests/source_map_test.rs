@@ -2,6 +2,7 @@
 
 use atlas::source_map::{BytePos, Pos, SourceFile, Span, Spanned};
 use proptest::prelude::*;
+use proptest::string::string_regex;
 use std::assert_matches::assert_matches;
 
 proptest! {
@@ -66,16 +67,13 @@ proptest! {
     }
 }
 
-prop_compose! {
-    fn valid_span()
-                 (start in any::<usize>())
-                 (end in start.., start in Just(start))
-                 -> Span {
-        Span {
-            start: BytePos::from_usize(start),
-            end: BytePos::from_usize(end),
-        }
-    }
+fn valid_span() -> impl Strategy<Value = Span> {
+    any::<usize>()
+        .prop_flat_map(|end| (0..end, Just(end)))
+        .prop_map(|(start, end)| Span {
+            start: start.into(),
+            end: end.into(),
+        })
 }
 
 proptest! {
@@ -157,13 +155,23 @@ proptest! {
     }
 }
 
-prop_compose! {
-    fn text_and_inbounds_byte_pos()
-                        (text in ".+")
-                        (index in 0..text.len(), text in Just(text))
-                        -> (String, BytePos) {
-        (text, BytePos::from_usize(index))
-    }
+fn c_lang_charset() -> impl Strategy<Value = String> {
+    // C17 [5.2.1] Character sets
+    let upper_alpha = "A-Z";
+    let lower_alpha = "a-z";
+    let digits = "0-9";
+    let graphic_chars = r###"!"#%&'()*+,-./:;<=>?[\\]^_{|}~"###;
+    let controls = "\x20\t\n\r\x0b\x0c";
+
+    let charset = [upper_alpha, lower_alpha, digits, graphic_chars, controls].join("");
+
+    string_regex(&format!("[{}]+", charset)).unwrap()
+}
+
+fn text_and_inbounds_byte_pos() -> impl Strategy<Value = (String, BytePos)> {
+    c_lang_charset()
+        .prop_flat_map(|text| (0..text.len(), Just(text)))
+        .prop_map(|(index, text)| (text, index.into()))
 }
 
 proptest! {
@@ -197,7 +205,7 @@ proptest! {
 proptest! {
     #[test]
     fn get_text_snippet_should_panic_on_fully_out_of_bounds_span(
-        text in ".+",
+        text in c_lang_charset(),
         span in valid_span()
     ) {
         prop_assume!(span.start.to_usize() > text.len());
@@ -209,17 +217,12 @@ proptest! {
     }
 }
 
-prop_compose! {
-    fn text_and_partially_out_of_bounds_span()
-            (text in ".+")
-            (
-                inbounds_index in 0..text.len(),
-                outbounds_index in text.len()..,
-                text in Just(text)
-            )
-            -> (String, Span) {
-        (text, Span::from_usizes(inbounds_index, outbounds_index))
-    }
+fn text_and_partially_out_of_bounds_span() -> impl Strategy<Value = (String, Span)> {
+    c_lang_charset()
+        .prop_flat_map(|text| (0..text.len(), text.len().., Just(text)))
+        .prop_map(|(inbounds_index, outbounds_index, text)| {
+            (text, Span::from_usizes(inbounds_index, outbounds_index))
+        })
 }
 
 proptest! {
@@ -277,8 +280,21 @@ fn get_text_snippet_should_work_with_utf8_text() {
 }
 
 #[test]
-#[should_panic(expected = "span is an invalid UTF-8 sequence")]
 fn get_text_snippet_should_panic_if_span_is_broken_utf8() {
     let sf = SourceFile::new("\u{0800}");
-    let _ = sf.get_text_snippet(Span::from_usizes(0, 1));
+
+    let span = Span::from_usizes(0, 1);
+    let result = std::panic::catch_unwind(|| sf.get_text_snippet(span));
+
+    assert_matches!(result, Err(_));
+}
+
+#[test]
+fn get_text_snippet_should_panic_if_empty_span_start_is_not_a_utf_8_char_boundary() {
+    let sf = SourceFile::new("\u{0800}");
+
+    let span = Span::from_usizes(1, 1);
+    let result = std::panic::catch_unwind(|| sf.get_text_snippet(span));
+
+    assert_matches!(result, Err(_));
 }

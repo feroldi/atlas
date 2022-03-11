@@ -1,4 +1,3 @@
-use std::assert_matches::debug_assert_matches;
 use std::ops::{Add, AddAssign};
 
 pub struct SourceFile<'a> {
@@ -13,18 +12,7 @@ impl<'a> SourceFile<'a> {
     pub fn get_text_snippet(&self, span: impl Into<Span>) -> &'a str {
         let span = span.into();
         let (start_idx, end_idx) = (span.start.to_usize(), span.end.to_usize());
-
-        debug_assert_matches!(
-            {
-                let snippet_as_bytes = &self.source_text.as_bytes()[start_idx..end_idx];
-                std::str::from_utf8(snippet_as_bytes)
-            },
-            Ok(_),
-            "span is an invalid UTF-8 sequence"
-        );
-
-        // SAFETY: Span is always a valid utf-8 snippet.
-        unsafe { self.source_text.get_unchecked(start_idx..end_idx) }
+        &self.source_text[start_idx..end_idx]
     }
 }
 
