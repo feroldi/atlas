@@ -144,6 +144,7 @@ fn scan_single_nondigit_char_as_identifier() {
     }
 }
 
+// TODO(feroldi): @charset Refactor this characters set into a module.
 fn identifier() -> impl Strategy<Value = String> {
     string_regex("[_a-zA-Z][_0-9a-zA-Z]*")
         .unwrap()
@@ -160,6 +161,7 @@ proptest! {
     }
 }
 
+// TODO(feroldi): @charset Refactor this characters set into a module.
 fn non_identifier_chars() -> impl Strategy<Value = String> {
     string_regex("[^_0-9a-zA-Z]+").unwrap()
 }

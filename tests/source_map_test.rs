@@ -155,6 +155,7 @@ proptest! {
     }
 }
 
+// TODO(feroldi): @charset Refactor this characters set into a module.
 fn c_lang_charset() -> impl Strategy<Value = String> {
     // C17 [5.2.1] Character sets
     let upper_alpha = "A-Z";

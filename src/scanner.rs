@@ -380,6 +380,7 @@ fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
     Some(keyword_kind)
 }
 
+// TODO(feroldi): @charset Refactor this characters set into a module.
 fn is_whitespace_char(ch: char) -> bool {
     const SPACE: char = ' ';
     const TAB: char = '\t';
