@@ -104,6 +104,7 @@ pub enum TokenKind {
     Eof,
 }
 
+// TODO(feroldi): Add `is_eof()` function.
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Token {
     pub kind: TokenKind,
