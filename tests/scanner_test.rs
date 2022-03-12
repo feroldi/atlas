@@ -179,27 +179,21 @@ proptest! {
     }
 }
 
-// TODO: Remove.
-#[test]
-fn scanning_of_identifiers_should_stop_at_a_non_identifier_char() {
-    assert_eq!(
-        scan_all("foo1 bar2"),
-        [
-            (TokenKind::Identifier, "foo1"),
-            (TokenKind::Identifier, "bar2"),
-        ]
-    );
+// TODO(feroldi): @charset Refactor this characters set into a module.
+fn whitespace() -> impl Strategy<Value = String> {
+    string_regex("\x20\t\n\r\x0b\x0c").unwrap()
 }
 
-#[test]
-fn whitespace_at_the_start_of_the_input_should_be_ignored_when_scanned() {
-    assert_eq!(
-        scan_all(" \t\n\r\x0b\x0cfoo \t\n\rbar\x0b\x0c"),
-        [
-            (TokenKind::Identifier, "foo"),
-            (TokenKind::Identifier, "bar"),
-        ]
-    );
+proptest! {
+    #[test]
+    fn whitespace_at_the_start_of_the_input_should_be_ignored_when_scanned(
+        ws in whitespace(),
+        ident in identifier(),
+    ) {
+        let input_text = format!("{}{}", ws, ident);
+
+        assert_eq!(scan_first(&input_text), (TokenKind::Identifier, &*ident));
+    }
 }
 
 #[test]
