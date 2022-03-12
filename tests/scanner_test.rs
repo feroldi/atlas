@@ -309,14 +309,14 @@ impl<'input> Iterator for TokenKindAndLexemeIter<'input> {
 
     fn next(&mut self) -> Option<(TokenKind, &'input str)> {
         // TODO(feroldi): What to do when not Ok(_)?
-        if let Ok(token) = self.scanner.scan_next_token() {
-            if token != Token::EOF {
-                let lexeme = self.source_file.get_text_snippet(token);
-                return Some((token.kind, lexeme));
-            }
-        }
+        let token = self.scanner.scan_next_token().unwrap();
 
-        None
+        if token != Token::EOF {
+            let lexeme = self.source_file.get_text_snippet(token);
+            Some((token.kind, lexeme))
+        } else {
+            None
+        }
     }
 }
 
