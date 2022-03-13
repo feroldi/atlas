@@ -290,20 +290,6 @@ proptest! {
 }
 */
 
-// TODO(feroldi): Corner-case for numeric constant: r"\.[0-9]".
-
-#[test]
-fn digits_with_alphanumeric_chars_mixed_in_should_be_scanned_as_a_numeric_constant() {
-    assert_numeric_constants(&[
-        "123abc",
-        "1a",
-        "000i",
-        "0xFFFFF",
-        "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
-        "123abc456",
-    ]);
-}
-
 #[test]
 fn digits_with_scientific_notation_should_be_scanned_as_a_numeric_constant() {
     assert_numeric_constants(&[
