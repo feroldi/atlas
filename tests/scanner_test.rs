@@ -268,6 +268,15 @@ proptest! {
     }
 }
 
+proptest! {
+    #[test]
+    fn numeric_constant_cannot_start_with_more_than_one_period_punctuation(
+        input_text in "[.]{2,}[0-9]",
+    ) {
+        assert_ne!(scan_first(&input_text).0, TokenKind::NumericConstant);
+    }
+}
+
 /*
 proptest! {
     #[test]
