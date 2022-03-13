@@ -198,33 +198,90 @@ proptest! {
     }
 }
 
-#[test]
-fn sequence_of_one_or_more_ascii_digits_should_be_scanned_as_numeric_constant() {
-    assert_numeric_constants(&[
-        "1234567890",
-        "2340056",
-        "352",
-        "4402",
-        "562307",
-        "629",
-        "70001",
-        "81",
-        "93903458062390497540956",
-        "1000000000000000000000000000000000000000000000000000000",
-        "000",
-        "000123",
-        "0",
-        "1",
-        "2",
-        "3",
-        "4",
-        "5",
-        "6",
-        "7",
-        "8",
-        "9",
-    ]);
+proptest! {
+    #[test]
+    fn scan_decimal_digits_as_numeric_constant(decimal_digits in "[0-9]+") {
+        assert_eq!(
+            scan_first(&decimal_digits),
+            (TokenKind::NumericConstant, &*decimal_digits)
+        );
+    }
 }
+
+#[test]
+fn scan_single_decimal_digit_as_numeric_constant() {
+    assert_eq!(scan_first("0"), (TokenKind::NumericConstant, "0"));
+    assert_eq!(scan_first("1"), (TokenKind::NumericConstant, "1"));
+    assert_eq!(scan_first("2"), (TokenKind::NumericConstant, "2"));
+    assert_eq!(scan_first("3"), (TokenKind::NumericConstant, "3"));
+    assert_eq!(scan_first("4"), (TokenKind::NumericConstant, "4"));
+    assert_eq!(scan_first("5"), (TokenKind::NumericConstant, "5"));
+    assert_eq!(scan_first("6"), (TokenKind::NumericConstant, "6"));
+    assert_eq!(scan_first("7"), (TokenKind::NumericConstant, "7"));
+    assert_eq!(scan_first("8"), (TokenKind::NumericConstant, "8"));
+    assert_eq!(scan_first("9"), (TokenKind::NumericConstant, "9"));
+}
+
+fn stop_char_for_num_const() -> impl Strategy<Value = String> {
+    string_regex("[^0-9a-zA-Z.]").unwrap()
+}
+
+proptest! {
+    #[test]
+    fn numeric_constant_can_have_a_period_punctuation_in_the_middle(
+        num_const in "[0-9]+[.][0-9]+",
+        stop_char in stop_char_for_num_const(),
+    ) {
+        let input_text = format!("{}{}", num_const, stop_char);
+        assert_eq!(
+            scan_first(&input_text),
+            (TokenKind::NumericConstant, &*num_const)
+        );
+    }
+}
+
+proptest! {
+    #[test]
+    fn numeric_constant_can_end_with_a_period_punctuation(
+        num_const in "[0-9]+[.]",
+        stop_char in stop_char_for_num_const(),
+    ) {
+        let input_text = format!("{}{}", num_const, stop_char);
+        assert_eq!(
+            scan_first(&input_text),
+            (TokenKind::NumericConstant, &*num_const)
+        );
+    }
+}
+
+proptest! {
+    #[test]
+    fn numeric_constant_can_start_with_a_period_punctuation(
+        num_const in "[.][0-9]+",
+        stop_char in stop_char_for_num_const(),
+    ) {
+        let input_text = format!("{}{}", num_const, stop_char);
+        assert_eq!(
+            scan_first(&input_text),
+            (TokenKind::NumericConstant, &*num_const)
+        );
+    }
+}
+
+/*
+proptest! {
+    #[test]
+    fn scan_valid_numeric_constant(num_const in "[0-9.][0-9a-zA-Z.]*([eEpP][+-]?[0-9a-zA-Z.]+)*") {
+        eprintln!("NUMERIC CONSTANT: `{}`", num_const);
+        assert_eq!(
+            scan_first(&num_const),
+            (TokenKind::NumericConstant, &*num_const)
+        );
+    }
+}
+*/
+
+// TODO(feroldi): Corner-case for numeric constant: r"\.[0-9]".
 
 #[test]
 fn digits_with_alphanumeric_chars_mixed_in_should_be_scanned_as_a_numeric_constant() {

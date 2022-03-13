@@ -150,7 +150,13 @@ impl Scanner<'_> {
             '{' => TokenKind::Open(Bracket::Curly),
             '}' => TokenKind::Closed(Bracket::Curly),
             '.' => {
-                if self.chars.peek() == '.' && self.chars.lookahead(1) == '.' {
+                // TODO(feroldi): Refactor with numeric_constant scanning.
+                if self.chars.peek().is_ascii_digit() {
+                    while self.chars.peek().is_ascii_digit() {
+                        self.chars.consume();
+                    }
+                    TokenKind::NumericConstant
+                } else if self.chars.peek() == '.' && self.chars.lookahead(1) == '.' {
                     self.chars.consume();
                     self.chars.consume();
                     TokenKind::Ellipsis
@@ -281,7 +287,7 @@ impl Scanner<'_> {
                 // TODO: Refactor this section into a function.
                 let mut prev_peek = ch;
 
-                while self.chars.peek().is_ascii_alphanumeric() {
+                while self.chars.peek().is_ascii_alphanumeric() || self.chars.peek() == '.' {
                     prev_peek = self.chars.consume();
                 }
 
@@ -382,6 +388,7 @@ fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
 }
 
 // TODO(feroldi): @charset Refactor this characters set into a module.
+// TODO(feroldi): Rename to is_whitespace
 fn is_whitespace_char(ch: char) -> bool {
     const SPACE: char = ' ';
     const TAB: char = '\t';
