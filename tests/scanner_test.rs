@@ -277,69 +277,48 @@ proptest! {
     }
 }
 
-/*
 proptest! {
     #[test]
-    fn scan_valid_numeric_constant(num_const in "[0-9.][0-9a-zA-Z.]*([eEpP][+-]?[0-9a-zA-Z.]+)*") {
-        eprintln!("NUMERIC CONSTANT: `{}`", num_const);
+    fn numeric_constant_can_have_decimal_and_binary_exponent(
+        num_const in "[0-9]+[eEpP][+-]?[0-9]+",
+        stop_char in stop_char_for_num_const(),
+    ) {
+        let input_text = format!("{}{}", num_const, stop_char);
         assert_eq!(
-            scan_first(&num_const),
+            scan_first(&input_text),
             (TokenKind::NumericConstant, &*num_const)
         );
     }
 }
-*/
 
-#[test]
-fn digits_with_scientific_notation_should_be_scanned_as_a_numeric_constant() {
-    assert_numeric_constants(&[
-        "123e0456",
-        "123e+0456",
-        "123e-0456",
-        "123p0456",
-        "123p+0456",
-        "123p-0456",
-    ]);
-}
-
-#[test]
-fn numeric_constants_stop_being_scanned_after_reaching_a_punctuation() {
-    assert_eq!(
-        scan_all("12345+6789-567"),
-        [
-            (TokenKind::NumericConstant, "12345"),
-            (TokenKind::Plus, "+"),
-            (TokenKind::NumericConstant, "6789"),
-            (TokenKind::Minus, "-"),
-            (TokenKind::NumericConstant, "567"),
-        ]
-    );
-}
-
-fn assert_numeric_constants(numeric_constants: &[&str]) {
-    let input_text = format!("{}\n", numeric_constants.join(" "));
-
-    let mut scanner = Scanner::with_input(&input_text);
-    let source_file = SourceFile::new(&input_text);
-
-    for &decimal_digit_seq in numeric_constants {
-        let token = scanner.scan_next_token().unwrap();
-
-        let expected_token = Token {
-            kind: TokenKind::NumericConstant,
-        };
-
-        assert_eq!(
-            *token, expected_token,
-            "numeric constant: `{}`",
-            decimal_digit_seq
+proptest! {
+    #[test]
+    fn numeric_constants_should_not_contain_plus_or_minus_if_it_is_not_an_exponent(
+        num_const_without_exponent in "[0-9]+[0-9a-dA-Df-oF-Oq-zQ-Z]+",
+        incorrect_exponent in "[+-][0-9]+",
+        stop_char in stop_char_for_num_const(),
+    ) {
+        let input_text = format!(
+            "{}{}{}",
+            num_const_without_exponent, incorrect_exponent, stop_char
         );
-
         assert_eq!(
-            source_file.get_text_snippet(token),
-            decimal_digit_seq,
-            "numeric constant: `{}`",
-            decimal_digit_seq
+            scan_first(&input_text),
+            (TokenKind::NumericConstant, &*num_const_without_exponent)
+        );
+    }
+}
+
+proptest! {
+    #[test]
+    fn numeric_constant_can_have_various_decimal_or_binary_exponents(
+        num_const in "[0-9]+([eEpP][+-]?[0-9]+)+",
+        stop_char in stop_char_for_num_const(),
+    ) {
+        let input_text = format!("{}{}", num_const, stop_char);
+        assert_eq!(
+            scan_first(&input_text),
+            (TokenKind::NumericConstant, &*num_const)
         );
     }
 }

@@ -1,6 +1,5 @@
 use crate::char_stream::CharStream;
 use crate::source_map::{Span, Spanned};
-use std::assert_matches::debug_assert_matches;
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Bracket {
@@ -131,17 +130,17 @@ impl Scanner<'_> {
         }
     }
 
-    // TODO: Refactor this into free functions that scan a specific set of token categories. For
-    // example, have this check if peek is ascii punctuation, then call the punctuation scanning
-    // function passing in the char-stream.
+    // TODO: Refactor this into free functions that scan a specific set of token
+    // categories. For example, have this check if peek is ascii punctuation,
+    // then call the punctuation scanning function passing in the char-stream.
     pub fn scan_next_token(&mut self) -> Result<Spanned<Token>, ScanDiag> {
-        while is_whitespace_char(self.chars.peek()) {
-            self.chars.consume();
+        while is_whitespace_char(self.peek()) {
+            self.consume();
         }
 
         let span_start = self.chars.peek_byte_pos();
 
-        let token_kind = match self.chars.consume() {
+        let token_kind = match self.consume() {
             CharStream::EOF_CHAR => return Ok(Token::EOF),
             '(' => TokenKind::Open(Bracket::Round),
             ')' => TokenKind::Closed(Bracket::Round),
@@ -150,51 +149,48 @@ impl Scanner<'_> {
             '{' => TokenKind::Open(Bracket::Curly),
             '}' => TokenKind::Closed(Bracket::Curly),
             '.' => {
-                // TODO(feroldi): Refactor with numeric_constant scanning.
-                if self.chars.peek().is_ascii_digit() {
-                    while self.chars.peek().is_ascii_digit() {
-                        self.chars.consume();
-                    }
-                    TokenKind::NumericConstant
-                } else if self.chars.peek() == '.' && self.chars.lookahead(1) == '.' {
-                    self.chars.consume();
-                    self.chars.consume();
+                if is_digit(self.peek()) {
+                    let first_digit = self.consume();
+                    self.scan_numeric_constant(first_digit)
+                } else if self.peek() == '.' && self.lookahead(1) == '.' {
+                    self.consume();
+                    self.consume();
                     TokenKind::Ellipsis
                 } else {
                     TokenKind::Period
                 }
             }
             '-' => {
-                if self.chars.try_consume('>') {
+                if self.try_consume('>') {
                     TokenKind::Arrow
-                } else if self.chars.try_consume('-') {
+                } else if self.try_consume('-') {
                     TokenKind::MinusMinus
-                } else if self.chars.try_consume('=') {
+                } else if self.try_consume('=') {
                     TokenKind::MinusEqual
                 } else {
                     TokenKind::Minus
                 }
             }
             '+' => {
-                if self.chars.try_consume('+') {
+                if self.try_consume('+') {
                     TokenKind::PlusPlus
-                } else if self.chars.try_consume('=') {
+                } else if self.try_consume('=') {
                     TokenKind::PlusEqual
                 } else {
                     TokenKind::Plus
                 }
             }
             '&' => {
-                if self.chars.try_consume('&') {
+                if self.try_consume('&') {
                     TokenKind::AmpAmp
-                } else if self.chars.try_consume('=') {
+                } else if self.try_consume('=') {
                     TokenKind::AmpEqual
                 } else {
                     TokenKind::Ampersand
                 }
             }
             '*' => {
-                if self.chars.try_consume('=') {
+                if self.try_consume('=') {
                     TokenKind::StarEqual
                 } else {
                     TokenKind::Star
@@ -202,70 +198,70 @@ impl Scanner<'_> {
             }
             '~' => TokenKind::Tilde,
             '!' => {
-                if self.chars.try_consume('=') {
+                if self.try_consume('=') {
                     TokenKind::ExclaEqual
                 } else {
                     TokenKind::Exclamation
                 }
             }
             '/' => {
-                if self.chars.try_consume('=') {
+                if self.try_consume('=') {
                     TokenKind::SlashEqual
                 } else {
                     TokenKind::Slash
                 }
             }
             '%' => {
-                if self.chars.try_consume('=') {
+                if self.try_consume('=') {
                     TokenKind::PercentEqual
                 } else {
                     TokenKind::Percent
                 }
             }
             '<' => {
-                if self.chars.try_consume('<') {
-                    if self.chars.try_consume('=') {
+                if self.try_consume('<') {
+                    if self.try_consume('=') {
                         TokenKind::LessLessEqual
                     } else {
                         TokenKind::LessLess
                     }
-                } else if self.chars.try_consume('=') {
+                } else if self.try_consume('=') {
                     TokenKind::LessEqual
                 } else {
                     TokenKind::Less
                 }
             }
             '>' => {
-                if self.chars.try_consume('>') {
-                    if self.chars.try_consume('=') {
+                if self.try_consume('>') {
+                    if self.try_consume('=') {
                         TokenKind::GreaterGreaterEqual
                     } else {
                         TokenKind::GreaterGreater
                     }
-                } else if self.chars.try_consume('=') {
+                } else if self.try_consume('=') {
                     TokenKind::GreaterEqual
                 } else {
                     TokenKind::Greater
                 }
             }
             '=' => {
-                if self.chars.try_consume('=') {
+                if self.try_consume('=') {
                     TokenKind::EqualEqual
                 } else {
                     TokenKind::Equal
                 }
             }
             '^' => {
-                if self.chars.try_consume('=') {
+                if self.try_consume('=') {
                     TokenKind::CaretEqual
                 } else {
                     TokenKind::Caret
                 }
             }
             '|' => {
-                if self.chars.try_consume('|') {
+                if self.try_consume('|') {
                     TokenKind::PipePipe
-                } else if self.chars.try_consume('=') {
+                } else if self.try_consume('=') {
                     TokenKind::PipeEqual
                 } else {
                     TokenKind::Pipe
@@ -276,36 +272,13 @@ impl Scanner<'_> {
             ';' => TokenKind::Semicolon,
             ',' => TokenKind::Comma,
             '#' => {
-                if self.chars.try_consume('#') {
+                if self.try_consume('#') {
                     TokenKind::HashHash
                 } else {
                     TokenKind::Hash
                 }
             }
-            // TODO: Define our own functions for these chars matching.
-            ch if ch.is_ascii_digit() => {
-                // TODO: Refactor this section into a function.
-                let mut prev_peek = ch;
-
-                while self.chars.peek().is_ascii_alphanumeric() || self.chars.peek() == '.' {
-                    prev_peek = self.chars.consume();
-                }
-
-                // TODO: Improve this code's readability.
-                if matches!(
-                    (prev_peek, self.chars.peek()),
-                    ('p' | 'P' | 'e' | 'E', '+' | '-')
-                ) {
-                    let sign_char = self.chars.consume();
-                    debug_assert_matches!(sign_char, '+' | '-');
-
-                    while self.chars.peek().is_ascii_alphanumeric() {
-                        self.chars.consume();
-                    }
-                }
-
-                TokenKind::NumericConstant
-            }
+            ch if is_digit(ch) => self.scan_numeric_constant(ch),
             ch if is_identifier_head(ch) => self.scan_identifier_or_keyword(ch),
             unrecognized_char => {
                 unimplemented!("character not recognized: `{}`", unrecognized_char)
@@ -321,17 +294,60 @@ impl Scanner<'_> {
         Ok(Spanned::new(Token { kind: token_kind }, token_span))
     }
 
+    fn scan_numeric_constant(&mut self, first_digit: char) -> TokenKind {
+        debug_assert!(is_numeric_constant_char(first_digit));
+
+        let mut prev_peek = first_digit;
+
+        // We consume a possibly ill-formed numeric constant, because we
+        // delegate the diagnosing to the parser. This is so that diagnosing
+        // becomes easier, as the scope of possible characters to analyse is
+        // the numeric constant's. We also guarantee that a num-const token
+        // doesn't start with adjacent periods, and any exponent found in it is
+        // always correct regarding the position of the sign.
+        loop {
+            while is_numeric_constant_char(self.peek()) {
+                prev_peek = self.consume();
+            }
+
+            if matches!(self.peek(), '+' | '-') && matches!(prev_peek, 'e' | 'E' | 'p' | 'P') {
+                self.consume();
+                continue;
+            }
+
+            break;
+        }
+
+        TokenKind::NumericConstant
+    }
+
     fn scan_identifier_or_keyword(&mut self, ident_head: char) -> TokenKind {
         debug_assert!(is_identifier_head(ident_head), "char: `{}`", ident_head);
 
         let mut lexeme_buffer = String::with_capacity(16);
         lexeme_buffer.push(ident_head);
 
-        while is_identifier_tail(self.chars.peek()) {
-            lexeme_buffer.push(self.chars.consume());
+        while is_identifier_body(self.peek()) {
+            lexeme_buffer.push(self.consume());
         }
 
         get_keyword_kind_for_lexeme(&lexeme_buffer).unwrap_or(TokenKind::Identifier)
+    }
+
+    fn peek(&self) -> char {
+        self.chars.peek()
+    }
+
+    fn lookahead(&self, n: usize) -> char {
+        self.chars.lookahead(n)
+    }
+
+    fn consume(&mut self) -> char {
+        self.chars.consume()
+    }
+
+    fn try_consume(&mut self, expected_char: char) -> bool {
+        self.chars.try_consume(expected_char)
     }
 }
 
@@ -403,10 +419,18 @@ fn is_whitespace_char(ch: char) -> bool {
     )
 }
 
+fn is_numeric_constant_char(ch: char) -> bool {
+    matches!(ch, '.' | '0'..='9' | 'a'..='z' | 'A'..='Z')
+}
+
+fn is_digit(ch: char) -> bool {
+    matches!(ch, '0'..='9')
+}
+
 fn is_identifier_head(ch: char) -> bool {
     matches!(ch, 'a'..='z' | 'A'..='Z' | '_')
 }
 
-fn is_identifier_tail(ch: char) -> bool {
+fn is_identifier_body(ch: char) -> bool {
     matches!(ch, 'a'..='z' | 'A'..='Z' | '_' | '0'..='9')
 }
