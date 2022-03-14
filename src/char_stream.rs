@@ -57,8 +57,8 @@ impl CharStream<'_> {
 
         if let Some(next_char) = self.chars.next() {
             if next_char == CharStream::EOF_CHAR {
-                // Consumes the entire iterator until the end. A NUL char marks the end
-                // of the input.
+                // Consumes the entire iterator until the end. A NUL char marks
+                // the end of the input.
                 for _ in &mut self.chars {}
             }
             self.peeked_char = next_char;

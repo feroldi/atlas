@@ -130,9 +130,10 @@ fn lookup_line_index(lines_pos: &[BytePos], pos: BytePos) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
-    // These tests are here temporarily, because they don't have any use right now, so they aren't
-    // part of the API right now, but in the future, we'll have a diagnostics system that surely will
-    // make use of these functions, so we keep them here as is for now.
+    // These tests are here temporarily, because they don't have any use right
+    // now, so they aren't part of the API right now, but in the future,
+    // we'll have a diagnostics system that surely will make use of these
+    // functions, so we keep them here as is for now.
     mod calc_lines_positions {
         use crate::source_map::{calc_lines_positions, BytePos};
 
