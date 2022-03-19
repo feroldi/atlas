@@ -1,125 +1,6 @@
 use crate::char_stream::CharStream;
 use crate::source_map::{Span, Spanned};
 
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub enum Bracket {
-    Round,
-    Square,
-    Curly,
-}
-
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub enum TokenKind {
-    Open(Bracket),
-    Closed(Bracket),
-    Period,
-    Arrow,
-    PlusPlus,
-    MinusMinus,
-    Ampersand,
-    Star,
-    Plus,
-    Minus,
-    Tilde,
-    Exclamation,
-    Slash,
-    Percent,
-    LessLess,
-    GreaterGreater,
-    Less,
-    Greater,
-    LessEqual,
-    GreaterEqual,
-    EqualEqual,
-    ExclaEqual,
-    Caret,
-    Pipe,
-    AmpAmp,
-    PipePipe,
-    Question,
-    Colon,
-    Semicolon,
-    Ellipsis,
-    Equal,
-    StarEqual,
-    SlashEqual,
-    PercentEqual,
-    PlusEqual,
-    MinusEqual,
-    LessLessEqual,
-    GreaterGreaterEqual,
-    AmpEqual,
-    CaretEqual,
-    PipeEqual,
-    Comma,
-    Hash,
-    HashHash,
-    Identifier,
-    KwAuto,
-    KwBreak,
-    KwCase,
-    KwChar,
-    KwConst,
-    KwContinue,
-    KwDefault,
-    KwDo,
-    KwDouble,
-    KwElse,
-    KwEnum,
-    KwExtern,
-    KwFloat,
-    KwFor,
-    KwGoto,
-    KwIf,
-    KwInline,
-    KwInt,
-    KwLong,
-    KwRegister,
-    KwRestrict,
-    KwReturn,
-    KwShort,
-    KwSigned,
-    KwSizeof,
-    KwStatic,
-    KwStruct,
-    KwSwitch,
-    KwTypedef,
-    KwUnion,
-    KwUnsigned,
-    KwVoid,
-    KwVolatile,
-    KwWhile,
-    KwAlignas,
-    KwAlignof,
-    KwAtomic,
-    KwBool,
-    KwComplex,
-    KwGeneric,
-    KwImaginary,
-    KwNoreturn,
-    KwStaticAssert,
-    KwThreadLocal,
-    NumericConstant,
-    Eof,
-}
-
-// TODO(feroldi): Add `is_eof()` function.
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub struct Token {
-    pub kind: TokenKind,
-}
-
-impl Token {
-    pub const EOF: Spanned<Token> = Spanned::with_dummy_span(Token {
-        kind: TokenKind::Eof,
-    });
-}
-
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub enum Diag {
-    UnrecognizedChar(char),
-}
-
 pub struct Scanner<'chars> {
     chars: CharStream<'chars>,
 }
@@ -348,6 +229,125 @@ impl Scanner<'_> {
     fn try_consume(&mut self, expected_char: char) -> bool {
         self.chars.try_consume(expected_char)
     }
+}
+
+// TODO(feroldi): Add `is_eof()` function.
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub struct Token {
+    pub kind: TokenKind,
+}
+
+impl Token {
+    pub const EOF: Spanned<Token> = Spanned::with_dummy_span(Token {
+        kind: TokenKind::Eof,
+    });
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum TokenKind {
+    Open(Bracket),
+    Closed(Bracket),
+    Period,
+    Arrow,
+    PlusPlus,
+    MinusMinus,
+    Ampersand,
+    Star,
+    Plus,
+    Minus,
+    Tilde,
+    Exclamation,
+    Slash,
+    Percent,
+    LessLess,
+    GreaterGreater,
+    Less,
+    Greater,
+    LessEqual,
+    GreaterEqual,
+    EqualEqual,
+    ExclaEqual,
+    Caret,
+    Pipe,
+    AmpAmp,
+    PipePipe,
+    Question,
+    Colon,
+    Semicolon,
+    Ellipsis,
+    Equal,
+    StarEqual,
+    SlashEqual,
+    PercentEqual,
+    PlusEqual,
+    MinusEqual,
+    LessLessEqual,
+    GreaterGreaterEqual,
+    AmpEqual,
+    CaretEqual,
+    PipeEqual,
+    Comma,
+    Hash,
+    HashHash,
+    Identifier,
+    KwAuto,
+    KwBreak,
+    KwCase,
+    KwChar,
+    KwConst,
+    KwContinue,
+    KwDefault,
+    KwDo,
+    KwDouble,
+    KwElse,
+    KwEnum,
+    KwExtern,
+    KwFloat,
+    KwFor,
+    KwGoto,
+    KwIf,
+    KwInline,
+    KwInt,
+    KwLong,
+    KwRegister,
+    KwRestrict,
+    KwReturn,
+    KwShort,
+    KwSigned,
+    KwSizeof,
+    KwStatic,
+    KwStruct,
+    KwSwitch,
+    KwTypedef,
+    KwUnion,
+    KwUnsigned,
+    KwVoid,
+    KwVolatile,
+    KwWhile,
+    KwAlignas,
+    KwAlignof,
+    KwAtomic,
+    KwBool,
+    KwComplex,
+    KwGeneric,
+    KwImaginary,
+    KwNoreturn,
+    KwStaticAssert,
+    KwThreadLocal,
+    NumericConstant,
+    Eof,
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum Bracket {
+    Round,
+    Square,
+    Curly,
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum Diag {
+    UnrecognizedChar(char),
 }
 
 fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
