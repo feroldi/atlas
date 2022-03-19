@@ -164,8 +164,6 @@ fn c_lang_charset() -> impl Strategy<Value = String> {
     let graphic_chars = r###"!"#%&'()*+,-./:;<=>?[\\]^_{|}~"###;
     let spaces = "\x20\t\n\r\x0b\x0c";
 
-    // TODO(feroldi): Check if there are any missing control characters from the
-    // standard.
     let charset = [upper_alpha, lower_alpha, digits, graphic_chars, spaces].join("");
 
     string_regex(&format!("[{}]+", charset)).unwrap()
