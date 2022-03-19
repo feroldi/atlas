@@ -179,12 +179,15 @@ impl Scanner<'_> {
 
         let mut prev_peek = first_digit;
 
-        // We consume a possibly ill-formed numeric constant, because we
-        // delegate the diagnosing to the parser. This is so that diagnosing
-        // becomes easier, as the scope of possible characters to analyse is
-        // the numeric constant's. We also guarantee that a num-const token
-        // doesn't start with adjacent periods, and any exponent found in it is
-        // always correct regarding the position of the sign.
+        // Intentionally scans a more general case of a numeric constant, which may turn
+        // out to be ill-formed as per the standard. This means a numeric constant token
+        // is not guaranteed to be correct.
+        //
+        // A more strict and conforming scanning is done during parsing, which is when a
+        // ill-formed numeric constant is diagnosed. This takes some burden away
+        // from the scanner, and also makes the parser's job somewhat simpler, as
+        // the character set to be considered during the parsing of a numeric
+        // constant token is greatly reduced.
         loop {
             while is_numeric_constant_char(self.peek()) {
                 prev_peek = self.consume();
