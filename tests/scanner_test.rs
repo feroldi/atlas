@@ -1,4 +1,4 @@
-use atlas::scanner::{Bracket, Scanner, Token, TokenKind};
+use atlas::scanner::{Bracket, Diag, Scanner, Token, TokenKind};
 use atlas::source_map::SourceFile;
 use proptest::prelude::*;
 use proptest::string::string_regex;
@@ -320,6 +320,37 @@ proptest! {
             scan_first(&input_text),
             (TokenKind::NumericConstant, &*num_const)
         );
+    }
+}
+
+// TODO(feroldi): @charset Refactor this characters set into a module.
+fn c_lang_non_charset() -> impl Strategy<Value = String> {
+    use regex::escape;
+
+    const C_LANG_SOURCE_CHARSET: &str = {
+        // C17 [5.2.1] Character sets.
+        concat!(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",           // ASCII uppercase alphabet.
+            "abcdefghijklmnopqrstuvwxyz",           // ASCII lowercase alphabet.
+            "0123456789",                           // ASCII decimal digits.
+            r###"!"#%&'()*+,-./:;<=>?[\]^_{|}~"###, // ASCII graphic characters.
+            "\x20\t\n\r\x0b\x0c",                   // ASCII space and control characters.
+            "\0",                                   // NUL terminator extended character.
+        )
+    };
+
+    string_regex(&format!("[^{}]", escape(C_LANG_SOURCE_CHARSET))).unwrap()
+}
+
+proptest! {
+    #[test]
+    fn scanner_should_diagnose_characters_not_in_source_charset(
+        non_source_char in c_lang_non_charset()
+    ) {
+        let mut scanner = Scanner::with_input(&non_source_char);
+        let unrec_char = non_source_char.chars().next().unwrap();
+
+        assert_eq!(scanner.scan_next_token(), Err(Diag::UnrecognizedChar(unrec_char)));
     }
 }
 

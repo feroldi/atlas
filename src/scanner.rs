@@ -115,9 +115,10 @@ impl Token {
     });
 }
 
-// TODO: Should be SyntaxDiag
-#[derive(PartialEq, Debug)]
-pub enum ScanDiag {}
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum Diag {
+    UnrecognizedChar(char),
+}
 
 pub struct Scanner<'chars> {
     chars: CharStream<'chars>,
@@ -133,7 +134,7 @@ impl Scanner<'_> {
     // TODO: Refactor this into free functions that scan a specific set of token
     // categories. For example, have this check if peek is ascii punctuation,
     // then call the punctuation scanning function passing in the char-stream.
-    pub fn scan_next_token(&mut self) -> Result<Spanned<Token>, ScanDiag> {
+    pub fn scan_next_token(&mut self) -> Result<Spanned<Token>, Diag> {
         while is_whitespace_char(self.peek()) {
             self.consume();
         }
@@ -280,9 +281,7 @@ impl Scanner<'_> {
             }
             ch if is_digit(ch) => self.scan_numeric_constant(ch),
             ch if is_identifier_head(ch) => self.scan_identifier_or_keyword(ch),
-            unrecognized_char => {
-                unimplemented!("character not recognized: `{}`", unrecognized_char)
-            }
+            unrecognized_char => return Err(Diag::UnrecognizedChar(unrecognized_char)),
         };
 
         let span_end = self.chars.peek_byte_pos();
@@ -404,7 +403,6 @@ fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
 }
 
 // TODO(feroldi): @charset Refactor this characters set into a module.
-// TODO(feroldi): Rename to is_whitespace
 fn is_whitespace_char(ch: char) -> bool {
     const SPACE: char = ' ';
     const TAB: char = '\t';
