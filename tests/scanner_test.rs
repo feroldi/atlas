@@ -323,29 +323,111 @@ proptest! {
     }
 }
 
+proptest! {
+    #[test]
+    fn character_constant_is_wrapped_in_single_quotes(
+        c_char_seq in c_char_sequence(),
+        stop_char in source_charset_char()
+    ) {
+        let char_const = format!("'{}'", c_char_seq);
+        let input_text = format!("{}{}", char_const, stop_char);
+
+        assert_eq!(
+            scan_first(&input_text),
+            (TokenKind::CharacterConstant, &*char_const)
+        );
+    }
+}
+
+#[test]
+fn character_constant_cannot_be_empty() {
+    let mut scanner = Scanner::with_input("''");
+
+    assert_eq!(scanner.scan_next_token(), Err(Diag::EmptyCharacterConstant));
+    assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+}
+
+proptest! {
+    #[test]
+    fn character_constant_cannot_end_in_newline_or_nul(
+        c_char_seq in c_char_sequence()
+    ) {
+        for newline_or_nul in ['\n', '\r', '\0'] {
+            let input_text = format!("'{}{}", c_char_seq, newline_or_nul);
+            let mut scanner = Scanner::with_input(&input_text);
+
+            assert_eq!(
+                scanner.scan_next_token(),
+                Err(Diag::UnterminatedCharacterConstant)
+            );
+            assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+        }
+    }
+}
+
+#[test]
+fn character_constant_cannot_abruptly_end_in_newline_or_nul() {
+    for newline_or_nul in ['\n', '\r', '\0'] {
+        let input_text = format!("'{}", newline_or_nul);
+        let mut scanner = Scanner::with_input(&input_text);
+
+        assert_eq!(
+            scanner.scan_next_token(),
+            Err(Diag::UnterminatedCharacterConstant)
+        );
+        assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+    }
+}
+
+#[test]
+fn character_constant_token_may_contain_a_backslash() {
+    assert_eq!(scan_first(r"'\'"), (TokenKind::CharacterConstant, r"'\'"));
+}
+
+fn c_char_sequence() -> impl Strategy<Value = String> {
+    source_chars_except(&['\'', '\\', '\n', '\r'])
+}
+
 // TODO(feroldi): @charset Refactor this characters set into a module.
-fn c_lang_non_charset() -> impl Strategy<Value = String> {
+const C_LANG_SOURCE_CHARSET: &str = {
+    // C17 [5.2.1] Character sets.
+    concat!(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",      // ASCII uppercase alphabet.
+        "abcdefghijklmnopqrstuvwxyz",      // ASCII lowercase alphabet.
+        "0123456789",                      // ASCII decimal digits.
+        "!\"#%&'()*+,-./:;<=>?[\\]^_{|}~", // ASCII graphic characters.
+        "\x20\t\n\r\x0b\x0c",              // ASCII space and control characters.
+    )
+};
+
+// TODO(feroldi): @charset Refactor this characters set into a module.
+fn source_charset_char() -> impl Strategy<Value = String> {
     use regex::escape;
 
-    const C_LANG_SOURCE_CHARSET: &str = {
-        // C17 [5.2.1] Character sets.
-        concat!(
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",           // ASCII uppercase alphabet.
-            "abcdefghijklmnopqrstuvwxyz",           // ASCII lowercase alphabet.
-            "0123456789",                           // ASCII decimal digits.
-            r###"!"#%&'()*+,-./:;<=>?[\]^_{|}~"###, // ASCII graphic characters.
-            "\x20\t\n\r\x0b\x0c",                   // ASCII space and control characters.
-            "\0",                                   // NUL terminator extended character.
-        )
-    };
+    string_regex(&format!("[{}]", escape(C_LANG_SOURCE_CHARSET))).unwrap()
+}
 
-    string_regex(&format!("[^{}]", escape(C_LANG_SOURCE_CHARSET))).unwrap()
+fn source_chars_except(excluded_chars: &[char]) -> impl Strategy<Value = String> {
+    use regex::escape;
+
+    string_regex(&format!(
+        "[{}]+",
+        escape(&C_LANG_SOURCE_CHARSET.replace(excluded_chars, ""))
+    ))
+    .unwrap()
+}
+
+// TODO(feroldi): @charset Refactor this characters set into a module.
+fn non_source_charset_char() -> impl Strategy<Value = String> {
+    use regex::escape;
+
+    string_regex(&format!("[^{}\0]", escape(C_LANG_SOURCE_CHARSET))).unwrap()
 }
 
 proptest! {
     #[test]
     fn scanner_should_diagnose_characters_not_in_source_charset(
-        non_source_char in c_lang_non_charset()
+        non_source_char in non_source_charset_char()
     ) {
         let mut scanner = Scanner::with_input(&non_source_char);
         let unrec_char = non_source_char.chars().next().unwrap();

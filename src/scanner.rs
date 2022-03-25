@@ -1,12 +1,12 @@
 use crate::char_stream::CharStream;
 use crate::source_map::{Span, Spanned};
 
-pub struct Scanner<'chars> {
-    chars: CharStream<'chars>,
+pub struct Scanner<'input> {
+    chars: CharStream<'input>,
 }
 
-impl Scanner<'_> {
-    pub fn with_input(source_text: &str) -> Scanner {
+impl<'input> Scanner<'input> {
+    pub fn with_input(source_text: &'input str) -> Scanner<'input> {
         Scanner {
             chars: CharStream::with_text(source_text),
         }
@@ -160,18 +160,40 @@ impl Scanner<'_> {
                     TokenKind::Hash
                 }
             }
+            '\'' => self.scan_character_constant()?,
             ch if is_digit(ch) => self.scan_numeric_constant(ch),
             ch if is_identifier_head(ch) => self.scan_identifier_or_keyword(ch),
             unrecognized_char => return Err(Diag::UnrecognizedChar(unrecognized_char)),
         };
 
         let span_end = self.chars.peek_byte_pos();
+
         let token_span = Span {
             start: span_start,
             end: span_end,
         };
 
         Ok(Spanned::new(Token { kind: token_kind }, token_span))
+    }
+
+    fn scan_character_constant(&mut self) -> Result<TokenKind, Diag> {
+        if self.peek() == '\'' {
+            self.consume();
+            return Err(Diag::EmptyCharacterConstant);
+        }
+
+        while self.peek() != '\'' {
+            if is_newline(self.peek()) || self.peek() == CharStream::EOF_CHAR {
+                return Err(Diag::UnterminatedCharacterConstant);
+            }
+
+            self.consume();
+        }
+
+        let terminating_quote = self.consume();
+        debug_assert_eq!(terminating_quote, '\'');
+
+        Ok(TokenKind::CharacterConstant)
     }
 
     fn scan_numeric_constant(&mut self, first_digit: char) -> TokenKind {
@@ -338,6 +360,7 @@ pub enum TokenKind {
     KwStaticAssert,
     KwThreadLocal,
     NumericConstant,
+    CharacterConstant,
     Eof,
 }
 
@@ -351,6 +374,8 @@ pub enum Bracket {
 #[derive(PartialEq, Debug, Copy, Clone)]
 pub enum Diag {
     UnrecognizedChar(char),
+    EmptyCharacterConstant,
+    UnterminatedCharacterConstant,
 }
 
 fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
@@ -403,6 +428,10 @@ fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
     };
 
     Some(keyword_kind)
+}
+
+fn is_newline(ch: char) -> bool {
+    ch == '\n' || ch == '\r'
 }
 
 // TODO(feroldi): @charset Refactor this characters set into a module.
