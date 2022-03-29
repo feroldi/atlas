@@ -1,4 +1,4 @@
-name: Build
+name: ci
 
 on:
   push:
@@ -10,10 +10,28 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - name: Build files cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Coverage files cache
+        uses: actions/cache@v3
+        with:
+          path: coverage-*.profraw
+          key: ${{ runner.os }}-coverage-${{ hashFiles('**/coverage-*.profraw') }}
+          restore-keys: ${{ runner.os }}-coverage
 
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
@@ -22,24 +40,37 @@ jobs:
             override: true
             components: rustfmt, clippy, llvm-tools-preview
 
-      - name: Build check
+      - name: Check build
         uses: actions-rs/cargo@v1
         with:
           command: check
 
-      - name: Format check
+      - name: Check formatting
         uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --check
 
-      - name: Test
+      - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
         env:
           RUSTFLAGS: -C instrument-coverage
           LLVM_PROFILE_FILE: coverage-%p-%m.profraw
+
+  coverage:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Recover coverage files from cache
+        uses: actions/cache@v3
+        with:
+          path: coverage-*.profraw
+          key: ${{ runner.os }}-coverage
 
       - name: Install coverage tool
         run: |

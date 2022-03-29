@@ -1,6 +1,6 @@
 # Atlas
 
-[![build](https://github.com/feroldi/atlas/actions/workflows/build.yml/badge.svg)](https://github.com/feroldi/atlas/actions/workflows/build.yml)
+[![ci](https://github.com/feroldi/atlas/actions/workflows/ci.yml/badge.svg)](https://github.com/feroldi/atlas/actions/workflows/ci.yml)
 [![coverage](https://feroldi.github.io/atlas-coverage/badges/flat.svg)](https://feroldi.github.io/atlas-coverage)
 
 This is an experimental project of a C compiler written in Rust. More
