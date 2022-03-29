@@ -24,14 +24,15 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-v1-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Coverage files cache
         uses: actions/cache@v3
         with:
-          path: coverage-*.profraw
-          key: ${{ runner.os }}-coverage-${{ hashFiles('coverage-*.profraw') }}
-          restore-keys: ${{ runner.os }}-coverage
+          path: |
+            target/
+            coverage-*
+          key: ${{ runner.os }}-coverage-v1-${{ github.run_id }}
 
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
@@ -69,8 +70,10 @@ jobs:
       - name: Recover coverage files from cache
         uses: actions/cache@v3
         with:
-          path: coverage-*.profraw
-          key: ${{ runner.os }}-coverage
+          path: |
+            target/
+            coverage-*
+          key: ${{ runner.os }}-coverage-v1-${{ github.run_id }}
 
       - name: Install llvm tools
         uses: actions-rs/toolchain@v1
