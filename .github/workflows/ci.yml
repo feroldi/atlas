@@ -38,7 +38,7 @@ jobs:
         with:
             toolchain: nightly
             override: true
-            components: rustfmt, clippy, llvm-tools-preview
+            components: rustfmt, clippy
 
       - name: Check build
         uses: actions-rs/cargo@v1
@@ -71,6 +71,13 @@ jobs:
         with:
           path: coverage-*.profraw
           key: ${{ runner.os }}-coverage
+
+      - name: Install llvm tools
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            override: true
+            components: llvm-tools-preview
 
       - name: Install coverage tool
         run: |
