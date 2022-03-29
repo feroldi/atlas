@@ -30,7 +30,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: coverage-*.profraw
-          key: ${{ runner.os }}-coverage-${{ hashFiles('**/coverage-*.profraw') }}
+          key: ${{ runner.os }}-coverage-${{ hashFiles('coverage-*.profraw') }}
           restore-keys: ${{ runner.os }}-coverage
 
       - name: Install latest nightly
@@ -79,8 +79,10 @@ jobs:
 
       - name: Collect coverage statistics
         run: ./grcov . --source-dir . --binary-path ./target/debug/ --llvm --branch --output-type html --output-path ./coverage
+        id: grcov
 
       - name: Publish coverage statistics
+        if: steps.grcov.conclusion == 'success'
         uses: cpina/github-action-push-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.GH_ACCESS_TOKEN }}
