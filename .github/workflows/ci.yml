@@ -39,7 +39,7 @@ jobs:
         with:
             toolchain: nightly
             override: true
-            components: rustfmt, clippy
+            components: rustfmt, clippy, llvm-tools-preview
 
       - name: Check build
         uses: actions-rs/cargo@v1
