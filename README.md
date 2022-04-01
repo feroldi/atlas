@@ -41,6 +41,10 @@ $ cargo doc --open
 
 There still isn't any other kind of documentation yet, but it's in the radar.
 
+## Usage
+
+This is a work in progress. There still isn't any way to compile C code.
+
 ## FAQ
 
 ### Why choose to write a compiler for C17?
@@ -68,6 +72,13 @@ reasonably aims to become, but that's a long way. So, why not pick the
 better tool for the job that's available right now? Also, it's easier
 to write tests, easier to design APIs, easier to manage dependencies,
 easier to write documentation. The list goes on.
+
+### How does it generate binary code?
+
+Instead of using a backend like LLVM or cranelift, I decided I'm going to
+write a new IR (intermediate representation) and code generation. Given
+this is not a serious project, but rather a learning experience, I
+reasoned that building my own IR is more valuable for that end.
 
 [cci]: https://github.com/feroldi/cci/
 
