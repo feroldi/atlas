@@ -1,3 +1,5 @@
 comment_width = 80
 max_width = 100
 wrap_comments = true
+group_imports = "StdExternalCrate"
+report_fixme = "Unnumbered"

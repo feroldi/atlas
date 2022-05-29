@@ -12,11 +12,8 @@ impl<'input> Scanner<'input> {
         }
     }
 
-    // TODO: Refactor this into free functions that scan a specific set of token
-    // categories. For example, have this check if peek is ascii punctuation,
-    // then call the punctuation scanning function passing in the char-stream.
     pub fn scan_next_token(&mut self) -> Result<Spanned<Token>, Diag> {
-        while is_whitespace_char(self.peek()) {
+        while is_space(self.peek()) {
             self.consume();
         }
 
@@ -162,7 +159,7 @@ impl<'input> Scanner<'input> {
             }
             '\'' => self.scan_character_constant()?,
             ch if is_digit(ch) => self.scan_numeric_constant(ch),
-            ch if is_identifier_head(ch) => self.scan_identifier_or_keyword(ch),
+            ch if is_start_of_identifier(ch) => self.scan_identifier_or_keyword(ch),
             unrecognized_char => return Err(Diag::UnrecognizedChar(unrecognized_char)),
         };
 
@@ -226,13 +223,13 @@ impl<'input> Scanner<'input> {
         TokenKind::NumericConstant
     }
 
-    fn scan_identifier_or_keyword(&mut self, ident_head: char) -> TokenKind {
-        debug_assert!(is_identifier_head(ident_head), "char: `{}`", ident_head);
+    fn scan_identifier_or_keyword(&mut self, ident_start: char) -> TokenKind {
+        debug_assert!(is_start_of_identifier(ident_start));
 
         let mut lexeme_buffer = String::with_capacity(16);
-        lexeme_buffer.push(ident_head);
+        lexeme_buffer.push(ident_start);
 
-        while is_identifier_body(self.peek()) {
+        while is_remaining_of_identifier(self.peek()) {
             lexeme_buffer.push(self.consume());
         }
 
@@ -430,37 +427,30 @@ fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
     Some(keyword_kind)
 }
 
-fn is_newline(ch: char) -> bool {
-    ch == '\n' || ch == '\r'
+const fn is_newline(ch: char) -> bool {
+    matches!(ch, '\n' | '\r')
 }
 
-// TODO(feroldi): @charset Refactor this characters set into a module.
-fn is_whitespace_char(ch: char) -> bool {
-    const SPACE: char = ' ';
-    const TAB: char = '\t';
-    const LINE_FEED: char = '\n';
-    const CARRIAGE_RETURN: char = '\r';
-    const VERTICAL_TAB: char = '\x0b';
-    const FORM_FEED: char = '\x0c';
-
-    matches!(
-        ch,
-        SPACE | TAB | LINE_FEED | CARRIAGE_RETURN | VERTICAL_TAB | FORM_FEED,
-    )
+const fn is_numeric_constant_char(ch: char) -> bool {
+    is_alpha(ch) || is_digit(ch) || ch == '.'
 }
 
-fn is_numeric_constant_char(ch: char) -> bool {
-    matches!(ch, '.' | '0'..='9' | 'a'..='z' | 'A'..='Z')
+const fn is_start_of_identifier(ch: char) -> bool {
+    is_alpha(ch) || ch == '_'
 }
 
-fn is_digit(ch: char) -> bool {
+const fn is_remaining_of_identifier(ch: char) -> bool {
+    is_start_of_identifier(ch) || is_digit(ch)
+}
+
+const fn is_space(ch: char) -> bool {
+    matches!(ch, '\x20' | '\t' | '\n' | '\r' | '\x0b' | '\x0c')
+}
+
+const fn is_digit(ch: char) -> bool {
     matches!(ch, '0'..='9')
 }
 
-fn is_identifier_head(ch: char) -> bool {
-    matches!(ch, 'a'..='z' | 'A'..='Z' | '_')
-}
-
-fn is_identifier_body(ch: char) -> bool {
-    matches!(ch, 'a'..='z' | 'A'..='Z' | '_' | '0'..='9')
+const fn is_alpha(ch: char) -> bool {
+    matches!(ch, 'A'..='Z' | 'a'..='z')
 }

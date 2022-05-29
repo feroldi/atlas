@@ -1,5 +1,6 @@
-use crate::source_map::{BytePos, Pos};
 use std::str::Chars;
+
+use crate::source_map::{BytePos, Pos};
 
 #[derive(Clone)]
 pub struct CharStream<'chars> {

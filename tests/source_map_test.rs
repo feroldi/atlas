@@ -1,9 +1,12 @@
 #![feature(assert_matches)]
 
+use std::assert_matches::assert_matches;
+
 use atlas::source_map::{BytePos, Pos, SourceFile, Span, Spanned};
 use proptest::prelude::*;
-use proptest::string::string_regex;
-use std::assert_matches::assert_matches;
+use util::*;
+
+mod util;
 
 proptest! {
     #[test]
@@ -155,22 +158,8 @@ proptest! {
     }
 }
 
-// TODO(feroldi): @charset Refactor this characters set into a module.
-fn c_lang_charset() -> impl Strategy<Value = String> {
-    // C17 [5.2.1] Character sets
-    let upper_alpha = "A-Z";
-    let lower_alpha = "a-z";
-    let digits = "0-9";
-    let graphic_chars = r###"!"#%&'()*+,-./:;<=>?[\\]^_{|}~"###;
-    let spaces = "\x20\t\n\r\x0b\x0c";
-
-    let charset = [upper_alpha, lower_alpha, digits, graphic_chars, spaces].join("");
-
-    string_regex(&format!("[{}]+", charset)).unwrap()
-}
-
 fn text_and_inbounds_byte_pos() -> impl Strategy<Value = (String, BytePos)> {
-    c_lang_charset()
+    source_chars()
         .prop_flat_map(|text| (0..text.len(), Just(text)))
         .prop_map(|(index, text)| (text, index.into()))
 }
@@ -206,7 +195,7 @@ proptest! {
 proptest! {
     #[test]
     fn get_text_snippet_should_panic_on_fully_out_of_bounds_span(
-        text in c_lang_charset(),
+        text in source_chars(),
         span in valid_span()
     ) {
         prop_assume!(span.start.to_usize() > text.len());
@@ -219,7 +208,7 @@ proptest! {
 }
 
 fn text_and_partially_out_of_bounds_span() -> impl Strategy<Value = (String, Span)> {
-    c_lang_charset()
+    source_chars()
         .prop_flat_map(|text| (0..text.len(), text.len().., Just(text)))
         .prop_map(|(inbounds_index, outbounds_index, text)| {
             (text, Span::from_usizes(inbounds_index, outbounds_index))

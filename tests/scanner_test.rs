@@ -2,6 +2,9 @@ use atlas::scanner::{Bracket, Diag, Scanner, Token, TokenKind};
 use atlas::source_map::SourceFile;
 use proptest::prelude::*;
 use proptest::string::string_regex;
+use util::*;
+
+mod util;
 
 #[test]
 fn scanning_an_empty_input_should_return_an_eof_token() {
@@ -181,11 +184,6 @@ proptest! {
     }
 }
 
-// TODO(feroldi): @charset Refactor this characters set into a module.
-fn whitespace() -> impl Strategy<Value = String> {
-    string_regex("\x20\t\n\r\x0b\x0c").unwrap()
-}
-
 proptest! {
     #[test]
     fn whitespace_at_the_start_of_the_input_should_be_ignored_when_scanned(
@@ -327,7 +325,7 @@ proptest! {
     #[test]
     fn character_constant_is_wrapped_in_single_quotes(
         c_char_seq in c_char_sequence(),
-        stop_char in source_charset_char()
+        stop_char in source_char()
     ) {
         let char_const = format!("'{}'", c_char_seq);
         let input_text = format!("{}{}", char_const, stop_char);
@@ -388,46 +386,10 @@ fn c_char_sequence() -> impl Strategy<Value = String> {
     source_chars_except(&['\'', '\\', '\n', '\r'])
 }
 
-// TODO(feroldi): @charset Refactor this characters set into a module.
-const C_LANG_SOURCE_CHARSET: &str = {
-    // C17 [5.2.1] Character sets.
-    concat!(
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",      // ASCII uppercase alphabet.
-        "abcdefghijklmnopqrstuvwxyz",      // ASCII lowercase alphabet.
-        "0123456789",                      // ASCII decimal digits.
-        "!\"#%&'()*+,-./:;<=>?[\\]^_{|}~", // ASCII graphic characters.
-        "\x20\t\n\r\x0b\x0c",              // ASCII space and control characters.
-    )
-};
-
-// TODO(feroldi): @charset Refactor this characters set into a module.
-fn source_charset_char() -> impl Strategy<Value = String> {
-    use regex::escape;
-
-    string_regex(&format!("[{}]", escape(C_LANG_SOURCE_CHARSET))).unwrap()
-}
-
-fn source_chars_except(excluded_chars: &[char]) -> impl Strategy<Value = String> {
-    use regex::escape;
-
-    string_regex(&format!(
-        "[{}]+",
-        escape(&C_LANG_SOURCE_CHARSET.replace(excluded_chars, ""))
-    ))
-    .unwrap()
-}
-
-// TODO(feroldi): @charset Refactor this characters set into a module.
-fn non_source_charset_char() -> impl Strategy<Value = String> {
-    use regex::escape;
-
-    string_regex(&format!("[^{}\0]", escape(C_LANG_SOURCE_CHARSET))).unwrap()
-}
-
 proptest! {
     #[test]
     fn scanner_should_diagnose_characters_not_in_source_charset(
-        non_source_char in non_source_charset_char()
+        non_source_char in non_source_char()
     ) {
         let mut scanner = Scanner::with_input(&non_source_char);
         let unrec_char = non_source_char.chars().next().unwrap();
