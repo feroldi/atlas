@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use lazy_static::lazy_static;
 use proptest::prelude::*;
 use proptest::string::string_regex;
@@ -17,15 +19,15 @@ lazy_static! {
 
 }
 
-pub(crate) fn source_char() -> impl Strategy<Value = String> {
+pub fn source_char() -> impl Strategy<Value = String> {
     string_regex(&format!("[{}]", escape(&SOURCE_CHAR_PATTERN))).unwrap()
 }
 
-pub(crate) fn source_chars() -> impl Strategy<Value = String> {
+pub fn source_chars() -> impl Strategy<Value = String> {
     string_regex(&format!("[{}]+", escape(&SOURCE_CHAR_PATTERN))).unwrap()
 }
 
-pub(crate) fn source_chars_except(excluded_chars: &[char]) -> impl Strategy<Value = String> {
+pub fn source_chars_except(excluded_chars: &[char]) -> impl Strategy<Value = String> {
     string_regex(&format!(
         "[{}]+",
         escape(&SOURCE_CHAR_PATTERN.replace(excluded_chars, ""))
@@ -33,11 +35,11 @@ pub(crate) fn source_chars_except(excluded_chars: &[char]) -> impl Strategy<Valu
     .unwrap()
 }
 
-pub(crate) fn non_source_char() -> impl Strategy<Value = String> {
+pub fn non_source_char() -> impl Strategy<Value = String> {
     string_regex(&format!("[^{}\0]", escape(&SOURCE_CHAR_PATTERN))).unwrap()
 }
 
-pub(crate) fn whitespace() -> impl Strategy<Value = String> {
+pub fn whitespace() -> impl Strategy<Value = String> {
     let spaces = "\x20\t\n\r\x0b\x0c";
 
     string_regex(&format!("[{}]+", spaces)).unwrap()
