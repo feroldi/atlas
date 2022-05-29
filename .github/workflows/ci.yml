@@ -49,7 +49,7 @@ jobs:
 
       - name: Publish coverage statistics
         if: steps.grcov.conclusion == 'success'
-        uses: cpina/github-action-push-to-another-repository@main
+        uses: cpina/github-action-push-to-another-repository@v1.4.2
         env:
           API_TOKEN_GITHUB: ${{ secrets.GH_ACCESS_TOKEN }}
         with:
