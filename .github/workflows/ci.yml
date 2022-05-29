@@ -39,9 +39,10 @@ jobs:
           LLVM_PROFILE_FILE: coverage-%p-%m.profraw
 
       - name: Install coverage tool
-        run: |
-          wget https://github.com/feroldi/grcov/releases/download/v0.8.8-feroldi/grcov.tar.bz2 -O grcov.tar.bz2
-          tar -xf grcov.tar.bz2
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: grcov --version 0.8.9
 
       - name: Collect coverage statistics
         run: ./grcov . --source-dir . --binary-path ./target/debug/ --llvm --branch --output-type html --output-path ./coverage
