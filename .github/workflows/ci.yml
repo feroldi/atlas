@@ -45,7 +45,7 @@ jobs:
           args: grcov --version 0.8.9
 
       - name: Collect coverage statistics
-        run: ./grcov . --source-dir . --binary-path ./target/debug/ --llvm --branch --output-type html --output-path ./coverage
+        run: grcov . --source-dir . --binary-path ./target/debug/ --llvm --branch --output-type html --output-path ./coverage
         id: grcov
 
       - name: Publish coverage statistics
