@@ -25,9 +25,9 @@ jobs:
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
-            override: true
-            components: llvm-tools-preview
+          toolchain: nightly
+          override: true
+          components: llvm-tools-preview
 
       - name: Run tests with coverage
         uses: actions-rs/cargo@v1
