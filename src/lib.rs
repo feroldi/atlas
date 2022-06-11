@@ -5,4 +5,4 @@ pub mod scanner;
 pub mod source_map;
 
 #[cfg(test)]
-mod test_util;
+mod tests;

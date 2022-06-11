@@ -5,6 +5,10 @@ use proptest::prelude::*;
 use proptest::string::string_regex;
 use regex::escape;
 
+mod char_stream_tests;
+mod scanner_tests;
+mod source_map_tests;
+
 lazy_static! {
     static ref SOURCE_CHAR_PATTERN: String = {
         // C17 [5.2.1] Character sets
