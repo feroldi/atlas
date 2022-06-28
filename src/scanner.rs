@@ -184,6 +184,16 @@ impl<'input> Scanner<'input> {
                 return Err(Diag::UnterminatedCharacterConstant);
             }
 
+            // Skips backslashes. This effectively escapes single-quotes. Validation of
+            // escape sequences occurs later on during parsing, which means
+            // character-constant tokens may be semantically invalid. Such situation is
+            // similar to numeric-constant tokens.
+            // NOTE: Review this during implementation of escaping newlines in code.
+            // @escape-newline.
+            if self.peek() == '\\' {
+                self.consume();
+            }
+
             self.consume();
         }
 

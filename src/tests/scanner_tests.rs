@@ -379,8 +379,17 @@ fn character_constant_cannot_abruptly_end_in_newline_or_nul() {
 }
 
 #[test]
-fn character_constant_token_may_contain_a_backslash() {
-    assert_eq!(scan_first(r"'\'"), (TokenKind::CharacterConstant, r"'\'"));
+fn escape_single_quote_in_character_constant() {
+    assert_eq!(scan_first(r"'\''"), (TokenKind::CharacterConstant, r"'\''"));
+}
+
+#[test]
+fn character_constant_may_contain_backslashes() {
+    // TODO(feroldi): Make this test be property-based.
+    assert_eq!(
+        scan_first(r"'\a\\\\b\c'"),
+        (TokenKind::CharacterConstant, r"'\a\\\\b\c'")
+    );
 }
 
 fn c_char_sequence() -> impl Strategy<Value = String> {
