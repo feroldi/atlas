@@ -157,7 +157,19 @@ impl<'input> Scanner<'input> {
                     TokenKind::Hash
                 }
             }
-            '\'' => self.scan_character_constant()?,
+            '\'' => self.scan_character_constant(CharEncoding::Byte)?,
+            prefix @ ('L' | 'u' | 'U') if self.peek() == '\'' => {
+                self.consume();
+
+                let char_encoding = match prefix {
+                    'L' => CharEncoding::Wide,
+                    'u' => CharEncoding::Utf16,
+                    'U' => CharEncoding::Utf32,
+                    _ => unreachable!("invalid character constant prefix '{}'!", prefix),
+                };
+
+                self.scan_character_constant(char_encoding)?
+            }
             ch if is_digit(ch) => self.scan_numeric_constant(ch),
             ch if is_start_of_identifier(ch) => self.scan_identifier_or_keyword(ch),
             unrecognized_char => return Err(Diag::UnrecognizedChar(unrecognized_char)),
@@ -173,7 +185,7 @@ impl<'input> Scanner<'input> {
         Ok(Spanned::new(Token { kind: token_kind }, token_span))
     }
 
-    fn scan_character_constant(&mut self) -> Result<TokenKind, Diag> {
+    fn scan_character_constant(&mut self, encoding: CharEncoding) -> Result<TokenKind, Diag> {
         if self.peek() == '\'' {
             self.consume();
             return Err(Diag::EmptyCharacterConstant);
@@ -200,7 +212,7 @@ impl<'input> Scanner<'input> {
         let terminating_quote = self.consume();
         debug_assert_eq!(terminating_quote, '\'');
 
-        Ok(TokenKind::CharacterConstant)
+        Ok(TokenKind::CharacterConstant { encoding })
     }
 
     fn scan_numeric_constant(&mut self, first_digit: char) -> TokenKind {
@@ -367,7 +379,7 @@ pub enum TokenKind {
     KwStaticAssert,
     KwThreadLocal,
     NumericConstant,
-    CharacterConstant,
+    CharacterConstant { encoding: CharEncoding },
     Eof,
 }
 
@@ -376,6 +388,14 @@ pub enum Bracket {
     Round,
     Square,
     Curly,
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum CharEncoding {
+    Byte,
+    Wide,
+    Utf16,
+    Utf32,
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]

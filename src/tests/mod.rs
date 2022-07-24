@@ -48,3 +48,7 @@ pub fn whitespace() -> impl Strategy<Value = String> {
 
     string_regex(&format!("[{}]+", spaces)).unwrap()
 }
+
+pub fn source_punctuation() -> impl Strategy<Value = String> {
+    string_regex(&format!("[{}]", escape(r"!#%&()*+,-./:;<=>?[]^{|}~"))).unwrap()
+}

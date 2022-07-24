@@ -3,7 +3,7 @@
 use proptest::prelude::*;
 use proptest::string::string_regex;
 
-use crate::scanner::{Bracket, Diag, Scanner, Token, TokenKind};
+use crate::scanner::{Bracket, CharEncoding, Diag, Scanner, Token, TokenKind};
 use crate::source_map::SourceFile;
 use crate::tests::*;
 
@@ -333,7 +333,12 @@ proptest! {
 
         assert_eq!(
             scan_first(&input_text),
-            (TokenKind::CharacterConstant, &*char_const)
+            (
+                TokenKind::CharacterConstant {
+                    encoding: CharEncoding::Byte
+                },
+                &*char_const
+            )
         );
     }
 }
@@ -380,7 +385,36 @@ fn character_constant_cannot_abruptly_end_in_newline_or_nul() {
 
 #[test]
 fn escape_single_quote_in_character_constant() {
-    assert_eq!(scan_first(r"'\''"), (TokenKind::CharacterConstant, r"'\''"));
+    assert_eq!(
+        scan_first(r"'\''"),
+        (
+            TokenKind::CharacterConstant {
+                encoding: CharEncoding::Byte
+            },
+            r"'\''"
+        )
+    );
+}
+
+#[test]
+fn do_not_escape_single_quote_in_character_constant_if_it_follows_two_adjacent_backslashes() {
+    assert_eq!(
+        scan_first(r"'\\'"),
+        (
+            TokenKind::CharacterConstant {
+                encoding: CharEncoding::Byte
+            },
+            r"'\\'"
+        )
+    );
+}
+
+#[test]
+fn character_constant_missing_terminating_quote_because_it_was_escaped() {
+    assert_eq!(
+        try_scan_first(r"'\'"),
+        Err(Diag::UnterminatedCharacterConstant)
+    );
 }
 
 #[test]
@@ -388,8 +422,92 @@ fn character_constant_may_contain_backslashes() {
     // TODO(feroldi): Make this test be property-based.
     assert_eq!(
         scan_first(r"'\a\\\\b\c'"),
-        (TokenKind::CharacterConstant, r"'\a\\\\b\c'")
+        (
+            TokenKind::CharacterConstant {
+                encoding: CharEncoding::Byte
+            },
+            r"'\a\\\\b\c'"
+        )
     );
+}
+
+#[test]
+fn character_constant_may_start_with_wide_prefix() {
+    assert_eq!(
+        scan_first("L'x'"),
+        (
+            TokenKind::CharacterConstant {
+                encoding: CharEncoding::Wide
+            },
+            "L'x'"
+        )
+    );
+}
+
+#[test]
+fn character_constant_may_start_with_utf16_prefix() {
+    assert_eq!(
+        scan_first("u'x'"),
+        (
+            TokenKind::CharacterConstant {
+                encoding: CharEncoding::Utf16
+            },
+            "u'x'"
+        )
+    );
+}
+
+#[test]
+fn character_constant_may_start_with_utf32_prefix() {
+    assert_eq!(
+        scan_first("U'x'"),
+        (
+            TokenKind::CharacterConstant {
+                encoding: CharEncoding::Utf32
+            },
+            "U'x'"
+        )
+    );
+}
+
+proptest! {
+    #[test]
+    fn do_not_scan_alphanum_char_adjacent_to_single_quote_as_a_char_const_prefix(
+        invalid_prefix in "[_0-9a-zA-Z&&[^LuU]]"
+    ) {
+        let input = format!("{}'x'", invalid_prefix);
+        let tokens = scan_all(&input);
+
+        assert_eq!(tokens.len(), 2);
+
+        assert_eq!(
+            tokens[1],
+            (
+                TokenKind::CharacterConstant { encoding: CharEncoding::Byte },
+                "'x'"
+            )
+        );
+    }
+}
+
+proptest! {
+    #[test]
+    fn do_not_scan_punctuation_adjacent_to_single_quote_as_a_char_const_prefix(
+        punctuation in source_punctuation(),
+    ) {
+        let input = format!("{}'x'", punctuation);
+        let tokens = scan_all(&input);
+
+        assert_eq!(tokens.len(), 2);
+
+        assert_eq!(
+            tokens[1],
+            (
+                TokenKind::CharacterConstant { encoding: CharEncoding::Byte },
+                "'x'"
+            )
+        );
+    }
 }
 
 fn c_char_sequence() -> impl Strategy<Value = String> {
@@ -423,26 +541,37 @@ impl<'input> TokenKindAndLexemeIter<'input> {
 }
 
 impl<'input> Iterator for TokenKindAndLexemeIter<'input> {
-    type Item = (TokenKind, &'input str);
+    type Item = Result<(TokenKind, &'input str), Diag>;
 
-    fn next(&mut self) -> Option<(TokenKind, &'input str)> {
-        // TODO(feroldi): What to do when not Ok(_)?
-        let token = self.scanner.scan_next_token().unwrap();
-
-        if token != Token::EOF {
-            let lexeme = self.source_file.get_text_snippet(token);
-            Some((token.kind, lexeme))
-        } else {
-            None
+    fn next(&mut self) -> Option<Result<(TokenKind, &'input str), Diag>> {
+        match self.scanner.scan_next_token() {
+            Ok(token) => {
+                if token != Token::EOF {
+                    let lexeme = self.source_file.get_text_snippet(token);
+                    Some(Ok((token.kind, lexeme)))
+                } else {
+                    None
+                }
+            }
+            Err(diag) => Some(Err(diag)),
         }
     }
 }
 
 fn scan_all(input_text: &str) -> Vec<(TokenKind, &str)> {
-    TokenKindAndLexemeIter::new(input_text).collect::<Vec<_>>()
+    TokenKindAndLexemeIter::new(input_text)
+        .flatten()
+        .collect::<Vec<_>>()
 }
 
 fn scan_first(input_text: &str) -> (TokenKind, &str) {
+    TokenKindAndLexemeIter::new(input_text)
+        .flatten()
+        .next()
+        .unwrap()
+}
+
+fn try_scan_first(input_text: &str) -> Result<(TokenKind, &str), Diag> {
     TokenKindAndLexemeIter::new(input_text).next().unwrap()
 }
 
