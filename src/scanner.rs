@@ -170,6 +170,7 @@ impl<'input> Scanner<'input> {
 
                 self.scan_character_constant(char_encoding)?
             }
+            '"' => self.scan_string_literal()?,
             ch if is_digit(ch) => self.scan_numeric_constant(ch),
             ch if is_start_of_identifier(ch) => self.scan_identifier_or_keyword(ch),
             unrecognized_char => return Err(Diag::UnrecognizedChar(unrecognized_char)),
@@ -198,8 +199,7 @@ impl<'input> Scanner<'input> {
 
             // Skips backslashes. This effectively escapes single-quotes. Validation of
             // escape sequences occurs later on during parsing, which means
-            // character-constant tokens may be semantically invalid. Such situation is
-            // similar to numeric-constant tokens.
+            // character-constant tokens may be semantically invalid.
             // NOTE: Review this during implementation of escaping newlines in code.
             // @escape-newline.
             if self.peek() == '\\' {
@@ -213,6 +213,17 @@ impl<'input> Scanner<'input> {
         debug_assert_eq!(terminating_quote, '\'');
 
         Ok(TokenKind::CharacterConstant { encoding })
+    }
+
+    fn scan_string_literal(&mut self) -> Result<TokenKind, Diag> {
+        while self.peek() != '"' {
+            self.consume();
+        }
+
+        let terminating_quote = self.consume();
+        debug_assert_eq!(terminating_quote, '"');
+
+        Ok(TokenKind::StringLiteral)
     }
 
     fn scan_numeric_constant(&mut self, first_digit: char) -> TokenKind {
@@ -380,6 +391,7 @@ pub enum TokenKind {
     KwThreadLocal,
     NumericConstant,
     CharacterConstant { encoding: CharEncoding },
+    StringLiteral,
     Eof,
 }
 

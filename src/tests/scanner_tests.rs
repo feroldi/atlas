@@ -325,7 +325,7 @@ proptest! {
 proptest! {
     #[test]
     fn character_constant_is_wrapped_in_single_quotes(
-        c_char_seq in c_char_sequence(),
+        c_char_seq in char_const_char_sequence(),
         stop_char in source_char()
     ) {
         let char_const = format!("'{}'", c_char_seq);
@@ -354,7 +354,7 @@ fn character_constant_cannot_be_empty() {
 proptest! {
     #[test]
     fn character_constant_cannot_end_in_newline_or_nul(
-        c_char_seq in c_char_sequence()
+        c_char_seq in char_const_char_sequence()
     ) {
         for newline_or_nul in ['\n', '\r', '\0'] {
             let input_text = format!("'{}{}", c_char_seq, newline_or_nul);
@@ -510,8 +510,31 @@ proptest! {
     }
 }
 
-fn c_char_sequence() -> impl Strategy<Value = String> {
+fn char_const_char_sequence() -> impl Strategy<Value = String> {
     source_chars_except(&['\'', '\\', '\n', '\r'])
+}
+
+proptest! {
+    #[test]
+    fn string_literal_is_wrapped_in_double_quotes(
+        c_char_seq in str_lit_char_sequence(),
+        stop_char in source_char()
+    ) {
+        let str_lit = format!("{quote}{seq}{quote}", quote='"', seq=c_char_seq);
+        let input_text = format!("{}{}", str_lit, stop_char);
+
+        assert_eq!(
+            scan_first(&input_text),
+            (
+                TokenKind::StringLiteral,
+                &*str_lit
+            )
+        );
+    }
+}
+
+fn str_lit_char_sequence() -> impl Strategy<Value = String> {
+    source_chars_except(&['"', '\\', '\n', '\r'])
 }
 
 proptest! {
@@ -566,8 +589,8 @@ fn scan_all(input_text: &str) -> Vec<(TokenKind, &str)> {
 
 fn scan_first(input_text: &str) -> (TokenKind, &str) {
     TokenKindAndLexemeIter::new(input_text)
-        .flatten()
         .next()
+        .unwrap()
         .unwrap()
 }
 
