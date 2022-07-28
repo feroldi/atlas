@@ -33,6 +33,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --frozen
         env:
           CARGO_TERM_COLOR: always
           RUSTFLAGS: -C instrument-coverage
@@ -42,7 +43,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: grcov --version 0.8.9
+          args: grcov --version 0.8.11
 
       - name: Collect coverage statistics
         run: grcov . --source-dir . --binary-path ./target/debug/ --llvm --branch --output-type html --output-path ./coverage
