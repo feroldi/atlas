@@ -35,7 +35,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --frozen
         env:
           CARGO_TERM_COLOR: always
           RUSTFLAGS: -C instrument-coverage
