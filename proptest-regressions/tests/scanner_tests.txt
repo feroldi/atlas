@@ -6,3 +6,4 @@
 # everyone who runs the test benefits from these saved cases.
 cc d06239cbdeb86b5415dcbf1b32ae81bf8275f70fa0b22cd70533d87594d7da30 # shrinks to invalid_prefix = "M"
 cc d01105e45ac0737c9125242573ddf3a5e4b55064a106c30928062f358a874600 # shrinks to ident = "_", non_ident = "'"
+cc 0a4b99b6cb18db3cd159ea9e66f53498473c45e8c425f791b0b28b67e4a1c68b # shrinks to ws = "\r\n", ident = "A"

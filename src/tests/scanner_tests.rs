@@ -418,7 +418,7 @@ fn character_constant_missing_terminating_quote_because_it_was_escaped() {
 }
 
 #[test]
-fn character_constant_may_contain_backslashes() {
+fn backslashes_escape_anything_in_character_constant() {
     // TODO(feroldi): Make this test be property-based.
     assert_eq!(
         scan_first(r"'\a\\\\b\c'"),
@@ -531,6 +531,99 @@ proptest! {
             )
         );
     }
+}
+
+#[test]
+fn string_literal_can_be_empty() {
+    assert_eq!(
+        try_scan_first(r#""""#),
+        Ok((TokenKind::StringLiteral, r#""""#))
+    );
+}
+
+proptest! {
+    #[test]
+    fn string_literal_cannot_end_in_newline_or_nul(
+        char_seq in str_lit_char_sequence()
+    ) {
+        for newline_or_nul in ['\n', '\r', '\0'] {
+            let input_text = format!(
+                "{quote}{seq}{end}",
+                quote='"',
+                seq=char_seq,
+                end=newline_or_nul
+            );
+
+            let mut scanner = Scanner::with_input(&input_text);
+
+            assert_eq!(
+                scanner.scan_next_token(),
+                Err(Diag::UnterminatedStringLiteral)
+            );
+            assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+        }
+    }
+}
+
+#[test]
+fn string_literal_cannot_abruptly_end_in_newline_or_nul() {
+    for newline_or_nul in ['\n', '\r', '\0'] {
+        let input_text = format!("\"{}", newline_or_nul);
+        let mut scanner = Scanner::with_input(&input_text);
+
+        assert_eq!(
+            scanner.scan_next_token(),
+            Err(Diag::UnterminatedStringLiteral)
+        );
+        assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+    }
+}
+
+#[test]
+fn escape_double_quote_in_string_literal() {
+    assert_eq!(scan_first(r#""\"""#), (TokenKind::StringLiteral, r#""\"""#));
+}
+
+// TODO(feroldi): Stopped here.
+#[test]
+fn escape_newline_in_string_literal() {
+    for newline in ["\n", "\r", "\n\r", "\r\n"] {
+        let input = format!(
+            "{quote}{escape}{newline}{quote}",
+            quote = '"',
+            escape = '\\',
+            newline = newline
+        );
+        assert_eq!(
+            try_scan_first(&input),
+            Ok((TokenKind::StringLiteral, &*input))
+        );
+    }
+}
+
+#[test]
+fn do_not_escape_double_quote_in_string_literal_if_it_follows_two_adjacent_backslashes() {
+    assert_eq!(
+        try_scan_first(r#""\\""#),
+        Ok((TokenKind::StringLiteral, r#""\\""#))
+    );
+}
+
+#[test]
+fn string_literal_missing_terminating_quote_because_it_was_escaped() {
+    assert_eq!(
+        try_scan_first(r#""\""#),
+        Err(Diag::UnterminatedStringLiteral)
+    );
+}
+
+#[test]
+fn backslashes_escape_anything_in_string_literal() {
+    // TODO(feroldi): Make this test be property-based.
+    assert_eq!(
+        try_scan_first(r#""\a\\\\b\c""#),
+        Ok((TokenKind::StringLiteral, r#""\a\\\\b\c""#))
+    );
 }
 
 fn str_lit_char_sequence() -> impl Strategy<Value = String> {

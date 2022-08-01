@@ -217,6 +217,14 @@ impl<'input> Scanner<'input> {
 
     fn scan_string_literal(&mut self) -> Result<TokenKind, Diag> {
         while self.peek() != '"' {
+            if is_newline(self.peek()) || self.peek() == CharStream::EOF_CHAR {
+                return Err(Diag::UnterminatedStringLiteral);
+            }
+
+            if self.peek() == '\\' {
+                self.consume();
+            }
+
             self.consume();
         }
 
@@ -269,11 +277,11 @@ impl<'input> Scanner<'input> {
         get_keyword_kind_for_lexeme(&lexeme_buffer).unwrap_or(TokenKind::Identifier)
     }
 
-    fn peek(&self) -> char {
+    fn peek(&mut self) -> char {
         self.chars.peek()
     }
 
-    fn lookahead(&self, n: usize) -> char {
+    fn lookahead(&mut self, n: usize) -> char {
         self.chars.lookahead(n)
     }
 
@@ -415,6 +423,7 @@ pub enum Diag {
     UnrecognizedChar(char),
     EmptyCharacterConstant,
     UnterminatedCharacterConstant,
+    UnterminatedStringLiteral,
 }
 
 fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
