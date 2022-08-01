@@ -5,19 +5,19 @@ use crate::source_map::{BytePos, Pos};
 
 #[test]
 fn peek_should_return_eof_when_char_stream_is_empty() {
-    let char_stream = CharStream::with_text("");
+    let mut char_stream = CharStream::with_text("");
     assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
 }
 
 #[test]
 fn peek_should_return_first_char_from_stream_when_it_is_not_empty() {
-    let char_stream = CharStream::with_text("abc");
+    let mut char_stream = CharStream::with_text("abc");
     assert_eq!(char_stream.peek(), 'a');
 }
 
 #[test]
 fn multiple_calls_to_peek_should_return_the_same_char() {
-    let char_stream = CharStream::with_text("abc");
+    let mut char_stream = CharStream::with_text("abc");
 
     assert_eq!(char_stream.peek(), 'a');
     assert_eq!(char_stream.peek(), 'a');
@@ -26,7 +26,7 @@ fn multiple_calls_to_peek_should_return_the_same_char() {
 
 #[test]
 fn lookahead_should_return_eof_when_char_stream_is_empty_no_matter_the_value_of_n() {
-    let char_stream = CharStream::with_text("");
+    let mut char_stream = CharStream::with_text("");
 
     assert_eq!(char_stream.lookahead(0), CharStream::EOF_CHAR);
     assert_eq!(char_stream.lookahead(1), CharStream::EOF_CHAR);
@@ -35,7 +35,7 @@ fn lookahead_should_return_eof_when_char_stream_is_empty_no_matter_the_value_of_
 
 #[test]
 fn lookahead_should_return_eof_when_n_is_greater_or_equal_to_the_char_stream_length() {
-    let char_stream = CharStream::with_text("abc");
+    let mut char_stream = CharStream::with_text("abc");
 
     assert_ne!(char_stream.lookahead(2), CharStream::EOF_CHAR);
 
@@ -44,13 +44,13 @@ fn lookahead_should_return_eof_when_n_is_greater_or_equal_to_the_char_stream_len
 
 #[test]
 fn lookahead_should_return_first_char_from_stream_when_n_is_zero() {
-    let char_stream = CharStream::with_text("abc");
+    let mut char_stream = CharStream::with_text("abc");
     assert_eq!(char_stream.lookahead(0), 'a');
 }
 
 #[test]
 fn lookahead_should_return_nth_char_from_stream_when_n_is_nonzero() {
-    let char_stream = CharStream::with_text("abcdefg");
+    let mut char_stream = CharStream::with_text("abcdefg");
 
     assert_eq!(char_stream.lookahead(1), 'b');
     assert_eq!(char_stream.lookahead(4), 'e');
@@ -58,20 +58,20 @@ fn lookahead_should_return_nth_char_from_stream_when_n_is_nonzero() {
 
 #[test]
 fn lookahead_can_look_at_most_8_chars_ahead() {
-    let char_stream = CharStream::with_text("the brown fox jumped over the lazy dog");
+    let mut char_stream = CharStream::with_text("the brown fox jumped over the lazy dog");
     assert_eq!(char_stream.lookahead(8), 'n');
 }
 
 #[test]
 #[should_panic(expected = "cannot look further than 8 chars ahead")]
 fn lookahead_cannot_look_further_than_8_chars_ahead() {
-    let char_stream = CharStream::with_text("the brown fox jumped over the lazy dog");
+    let mut char_stream = CharStream::with_text("the brown fox jumped over the lazy dog");
     char_stream.lookahead(9);
 }
 
 #[test]
 fn lookahead_should_not_consume_the_char_stream() {
-    let char_stream = CharStream::with_text("abc");
+    let mut char_stream = CharStream::with_text("abc");
 
     char_stream.lookahead(3);
 
@@ -124,6 +124,86 @@ fn consume_should_return_eof_forever_after_encountering_a_null_char_in_the_middl
     assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
     assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
     assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
+    assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
+}
+
+#[test]
+fn consume_should_turn_a_line_feed_and_carriage_return_into_line_feed_only() {
+    let mut char_stream = CharStream::with_text("\n\ra");
+
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(0));
+
+    assert_eq!(char_stream.peek(), '\n');
+    assert_eq!(char_stream.consume(), '\n');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(2));
+
+    assert_eq!(char_stream.peek(), 'a');
+    assert_eq!(char_stream.consume(), 'a');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(3));
+
+    assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
+    assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
+}
+
+#[test]
+fn consume_should_turn_a_carriage_return_and_line_feed_into_line_feed_only() {
+    let mut char_stream = CharStream::with_text("\r\na");
+
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(0));
+
+    assert_eq!(char_stream.peek(), '\n');
+    assert_eq!(char_stream.consume(), '\n');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(2));
+
+    assert_eq!(char_stream.peek(), 'a');
+    assert_eq!(char_stream.consume(), 'a');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(3));
+
+    assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
+    assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
+}
+
+#[test]
+fn consume_should_not_deduplicate_line_feeds() {
+    let mut char_stream = CharStream::with_text("\n\na");
+
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(0));
+
+    assert_eq!(char_stream.peek(), '\n');
+    assert_eq!(char_stream.consume(), '\n');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(1));
+
+    assert_eq!(char_stream.peek(), '\n');
+    assert_eq!(char_stream.consume(), '\n');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(2));
+
+    assert_eq!(char_stream.peek(), 'a');
+    assert_eq!(char_stream.consume(), 'a');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(3));
+
+    assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
+    assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
+}
+
+#[test]
+fn consume_should_not_deduplicate_carriage_returns() {
+    let mut char_stream = CharStream::with_text("\r\ra");
+
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(0));
+
+    assert_eq!(char_stream.peek(), '\r');
+    assert_eq!(char_stream.consume(), '\r');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(1));
+
+    assert_eq!(char_stream.peek(), '\r');
+    assert_eq!(char_stream.consume(), '\r');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(2));
+
+    assert_eq!(char_stream.peek(), 'a');
+    assert_eq!(char_stream.consume(), 'a');
+    assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(3));
+
+    assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
     assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
 }
 
@@ -196,7 +276,7 @@ fn peek_byte_pos_should_return_zero_for_the_first_peeked_char_whether_char_strea
 
 #[test]
 fn peek_byte_pos_should_not_advance_after_peeking_a_char() {
-    let char_stream = CharStream::with_text("abc");
+    let mut char_stream = CharStream::with_text("abc");
 
     let before_byte_pos = char_stream.peek_byte_pos();
     let _ = char_stream.peek();
@@ -207,7 +287,7 @@ fn peek_byte_pos_should_not_advance_after_peeking_a_char() {
 
 #[test]
 fn peek_byte_pos_should_not_advance_after_lookahead() {
-    let char_stream = CharStream::with_text("abc");
+    let mut char_stream = CharStream::with_text("abc");
 
     let before_byte_pos = char_stream.peek_byte_pos();
     let _ = char_stream.lookahead(2);

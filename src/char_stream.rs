@@ -5,8 +5,14 @@ use crate::source_map::{BytePos, Pos};
 #[derive(Clone)]
 pub struct CharStream<'chars> {
     chars: Chars<'chars>,
-    peeked_char: char,
+    cached_peek: Option<PeekChar>,
     byte_pos_of_peeked_char: BytePos,
+}
+
+#[derive(Clone, Copy)]
+struct PeekChar {
+    ch: char,
+    size: usize,
 }
 
 impl CharStream<'_> {
@@ -14,28 +20,50 @@ impl CharStream<'_> {
     const LOOKAHEAD_LIMIT: usize = 8;
 
     pub fn with_text(text: &str) -> CharStream {
-        let mut char_stream = CharStream {
+        CharStream {
             chars: text.chars(),
-            peeked_char: CharStream::EOF_CHAR,
+            cached_peek: None,
             byte_pos_of_peeked_char: BytePos::from_usize(0),
-        };
-
-        // Consumes the first char by the C rules, making it available
-        // as the first peek-char.
-        let _ = char_stream.consume();
-
-        char_stream
+        }
     }
 
-    pub fn peek(&self) -> char {
-        self.peeked_char
+    pub fn peek(&mut self) -> char {
+        match self.cached_peek {
+            Some(peek) => peek.ch,
+            _ => {
+                let peeked = self.get_next_char_and_size();
+                self.cached_peek = Some(peeked);
+                peeked.ch
+            }
+        }
+    }
+
+    fn get_next_char_and_size(&mut self) -> PeekChar {
+        let next_char = self.chars.next();
+        let lookahead_char = self.chars.clone().next();
+
+        if is_newline(next_char) && is_newline(lookahead_char) && next_char != lookahead_char {
+            self.chars.next();
+            return PeekChar { ch: '\n', size: 2 };
+        }
+
+        match next_char {
+            Some(ch) => PeekChar {
+                ch,
+                size: ch.len_utf8(),
+            },
+            _ => PeekChar {
+                ch: CharStream::EOF_CHAR,
+                size: 0,
+            },
+        }
     }
 
     pub fn peek_byte_pos(&self) -> BytePos {
         self.byte_pos_of_peeked_char
     }
 
-    pub fn lookahead(&self, n: usize) -> char {
+    pub fn lookahead(&mut self, n: usize) -> char {
         assert!(
             n <= CharStream::LOOKAHEAD_LIMIT,
             "cannot look further than {} chars ahead",
@@ -54,24 +82,19 @@ impl CharStream<'_> {
     }
 
     pub fn consume(&mut self) -> char {
-        let old_peek = self.peek();
+        // Guarantees that `self.cached_peek` has a peeked char.
+        self.peek();
+        debug_assert!(self.cached_peek.is_some());
 
-        if let Some(next_char) = self.chars.next() {
-            if next_char == CharStream::EOF_CHAR {
-                // Consumes the entire iterator until the end. A NUL char marks
-                // the end of the input.
-                for _ in &mut self.chars {}
-            }
-            self.peeked_char = next_char;
-        } else {
-            self.peeked_char = CharStream::EOF_CHAR;
+        let peeked = self.cached_peek.unwrap();
+
+        if peeked.ch != CharStream::EOF_CHAR {
+            let peeked = self.cached_peek.unwrap();
+            self.byte_pos_of_peeked_char += BytePos::from_usize(peeked.size);
+            self.cached_peek = None;
         }
 
-        if old_peek != CharStream::EOF_CHAR {
-            self.byte_pos_of_peeked_char += BytePos::from_usize(old_peek.len_utf8());
-        }
-
-        old_peek
+        peeked.ch
     }
 
     pub fn try_consume(&mut self, ch: char) -> bool {
@@ -83,4 +106,8 @@ impl CharStream<'_> {
         }
         is_ch_peek
     }
+}
+
+fn is_newline(ch: impl Into<Option<char>>) -> bool {
+    matches!(ch.into(), Some('\n' | '\r'))
 }
