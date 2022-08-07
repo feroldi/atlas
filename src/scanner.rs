@@ -170,7 +170,25 @@ impl<'input> Scanner<'input> {
 
                 self.scan_character_constant(char_encoding)?
             }
-            '"' => self.scan_string_literal()?,
+            '"' => self.scan_string_literal(CharEncoding::Byte)?,
+            'u' if self.peek() == '8' && self.lookahead(1) == '"' => {
+                self.consume();
+                self.consume();
+
+                self.scan_string_literal(CharEncoding::Utf8)?
+            }
+            prefix @ ('L' | 'u' | 'U') if self.peek() == '"' => {
+                self.consume();
+
+                let char_encoding = match prefix {
+                    'L' => CharEncoding::Wide,
+                    'u' => CharEncoding::Utf16,
+                    'U' => CharEncoding::Utf32,
+                    _ => unreachable!("invalid string literal prefix '{}'!", prefix),
+                };
+
+                self.scan_string_literal(char_encoding)?
+            }
             ch if is_digit(ch) => self.scan_numeric_constant(ch),
             ch if is_start_of_identifier(ch) => self.scan_identifier_or_keyword(ch),
             unrecognized_char => return Err(Diag::UnrecognizedChar(unrecognized_char)),
@@ -187,6 +205,12 @@ impl<'input> Scanner<'input> {
     }
 
     fn scan_character_constant(&mut self, encoding: CharEncoding) -> Result<TokenKind, Diag> {
+        debug_assert_ne!(
+            encoding,
+            CharEncoding::Utf8,
+            "C17 standard doesn't define utf-8 character constants"
+        );
+
         if self.peek() == '\'' {
             self.consume();
             return Err(Diag::EmptyCharacterConstant);
@@ -199,7 +223,7 @@ impl<'input> Scanner<'input> {
 
             // Skips backslashes. This effectively escapes single-quotes. Validation of
             // escape sequences occurs later on during parsing, which means
-            // character-constant tokens may be semantically invalid.
+            // character-constant tokens may be semantically invalid before parsing.
             // NOTE: Review this during implementation of escaping newlines in code.
             // @escape-newline.
             if self.peek() == '\\' {
@@ -215,12 +239,17 @@ impl<'input> Scanner<'input> {
         Ok(TokenKind::CharacterConstant { encoding })
     }
 
-    fn scan_string_literal(&mut self) -> Result<TokenKind, Diag> {
+    fn scan_string_literal(&mut self, encoding: CharEncoding) -> Result<TokenKind, Diag> {
         while self.peek() != '"' {
             if is_newline(self.peek()) || self.peek() == CharStream::EOF_CHAR {
                 return Err(Diag::UnterminatedStringLiteral);
             }
 
+            // Skips backslashes. This effectively escapes double-quotes. Validation of
+            // escape sequences occurs later on during parsing, which means
+            // string-literal tokens may be semantically invalid before parsing.
+            // NOTE: Review this during implementation of escaping newlines in code.
+            // @escape-newline.
             if self.peek() == '\\' {
                 self.consume();
             }
@@ -231,7 +260,7 @@ impl<'input> Scanner<'input> {
         let terminating_quote = self.consume();
         debug_assert_eq!(terminating_quote, '"');
 
-        Ok(TokenKind::StringLiteral)
+        Ok(TokenKind::StringLiteral { encoding })
     }
 
     fn scan_numeric_constant(&mut self, first_digit: char) -> TokenKind {
@@ -240,14 +269,14 @@ impl<'input> Scanner<'input> {
         let mut prev_peek = first_digit;
 
         // Intentionally scans a more general case of a numeric constant, which may turn
-        // out to be ill-formed as per the standard. This means a numeric constant token
-        // is not guaranteed to be correct.
+        // out to be ill-formed as per the standard. This means a numeric-constant token
+        // is not guaranteed to be valid before parsing.
         //
-        // A more strict and conforming scanning is done during parsing, which is when a
-        // ill-formed numeric constant is diagnosed. This takes some burden away
-        // from the scanner, and also makes the parser's job somewhat simpler, as
-        // the character set to be considered during the parsing of a numeric
-        // constant token is greatly reduced.
+        // A more strict and conforming scanning is done during parsing, which is when
+        // an ill-formed numeric constant is diagnosed. This takes some burden
+        // away from the scanner, and also makes the parser's job somewhat
+        // simpler, as the character set to be considered during the parsing of
+        // a numeric constant token is greatly reduced.
         loop {
             while is_numeric_constant_char(self.peek()) {
                 prev_peek = self.consume();
@@ -399,7 +428,7 @@ pub enum TokenKind {
     KwThreadLocal,
     NumericConstant,
     CharacterConstant { encoding: CharEncoding },
-    StringLiteral,
+    StringLiteral { encoding: CharEncoding },
     Eof,
 }
 
@@ -414,6 +443,7 @@ pub enum Bracket {
 pub enum CharEncoding {
     Byte,
     Wide,
+    Utf8,
     Utf16,
     Utf32,
 }

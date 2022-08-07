@@ -432,6 +432,22 @@ fn backslashes_escape_anything_in_character_constant() {
 }
 
 #[test]
+fn character_constant_may_not_start_with_utf8_prefix() {
+    assert_eq!(
+        scan_all("u8'x'"),
+        vec![
+            (TokenKind::Identifier, "u8"),
+            (
+                TokenKind::CharacterConstant {
+                    encoding: CharEncoding::Byte
+                },
+                "'x'"
+            )
+        ]
+    );
+}
+
+#[test]
 fn character_constant_may_start_with_wide_prefix() {
     assert_eq!(
         scan_first("L'x'"),
@@ -526,7 +542,9 @@ proptest! {
         assert_eq!(
             scan_first(&input_text),
             (
-                TokenKind::StringLiteral,
+                TokenKind::StringLiteral{
+                encoding: CharEncoding::Byte
+            },
                 &*str_lit
             )
         );
@@ -537,7 +555,12 @@ proptest! {
 fn string_literal_can_be_empty() {
     assert_eq!(
         try_scan_first(r#""""#),
-        Ok((TokenKind::StringLiteral, r#""""#))
+        Ok((
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Byte
+            },
+            r#""""#
+        ))
     );
 }
 
@@ -581,10 +604,17 @@ fn string_literal_cannot_abruptly_end_in_newline_or_nul() {
 
 #[test]
 fn escape_double_quote_in_string_literal() {
-    assert_eq!(scan_first(r#""\"""#), (TokenKind::StringLiteral, r#""\"""#));
+    assert_eq!(
+        scan_first(r#""\"""#),
+        (
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Byte
+            },
+            r#""\"""#
+        )
+    );
 }
 
-// TODO(feroldi): Stopped here.
 #[test]
 fn escape_newline_in_string_literal() {
     for newline in ["\n", "\r", "\n\r", "\r\n"] {
@@ -596,7 +626,12 @@ fn escape_newline_in_string_literal() {
         );
         assert_eq!(
             try_scan_first(&input),
-            Ok((TokenKind::StringLiteral, &*input))
+            Ok((
+                TokenKind::StringLiteral {
+                    encoding: CharEncoding::Byte
+                },
+                &*input
+            ))
         );
     }
 }
@@ -605,7 +640,12 @@ fn escape_newline_in_string_literal() {
 fn do_not_escape_double_quote_in_string_literal_if_it_follows_two_adjacent_backslashes() {
     assert_eq!(
         try_scan_first(r#""\\""#),
-        Ok((TokenKind::StringLiteral, r#""\\""#))
+        Ok((
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Byte
+            },
+            r#""\\""#
+        ))
     );
 }
 
@@ -622,7 +662,64 @@ fn backslashes_escape_anything_in_string_literal() {
     // TODO(feroldi): Make this test be property-based.
     assert_eq!(
         try_scan_first(r#""\a\\\\b\c""#),
-        Ok((TokenKind::StringLiteral, r#""\a\\\\b\c""#))
+        Ok((
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Byte
+            },
+            r#""\a\\\\b\c""#
+        ))
+    );
+}
+
+#[test]
+fn string_literal_may_start_with_utf8_prefix() {
+    assert_eq!(
+        scan_first(r#"u8"hello world""#),
+        (
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Utf8
+            },
+            r#"u8"hello world""#
+        )
+    );
+}
+
+#[test]
+fn string_literal_may_start_with_wide_prefix() {
+    assert_eq!(
+        scan_first(r#"L"hello world""#),
+        (
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Wide
+            },
+            r#"L"hello world""#
+        )
+    );
+}
+
+#[test]
+fn string_literal_may_start_with_utf16_prefix() {
+    assert_eq!(
+        scan_first(r#"u"hello world""#),
+        (
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Utf16
+            },
+            r#"u"hello world""#
+        )
+    );
+}
+
+#[test]
+fn string_literal_may_start_with_utf32_prefix() {
+    assert_eq!(
+        scan_first(r#"U"hello world""#),
+        (
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Utf32
+            },
+            r#"U"hello world""#
+        )
     );
 }
 
