@@ -52,3 +52,9 @@ pub fn whitespace() -> impl Strategy<Value = String> {
 pub fn source_punctuation() -> impl Strategy<Value = String> {
     string_regex(&format!("[{}]", escape(r"!#%&()*+,-./:;<=>?[]^{|}~"))).unwrap()
 }
+
+pub fn is_start_of_prefixed_char_const_or_str_lit(text: &str) -> bool {
+    use regex::Regex;
+
+    Regex::new(r#"^[uUL]'|(u8|[uUL])""#).unwrap().is_match(text)
+}

@@ -177,6 +177,7 @@ proptest! {
         non_ident in non_identifier_chars()
     ) {
         let input_text = format!("{}{}", ident, non_ident);
+        prop_assume!(!is_start_of_prefixed_char_const_or_str_lit(&input_text));
 
         assert_eq!(
             scan_first(&input_text),
