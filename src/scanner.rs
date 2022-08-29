@@ -86,6 +86,10 @@ impl<'input> Scanner<'input> {
             '/' => {
                 if self.try_consume('=') {
                     TokenKind::SlashEqual
+                } else if self.try_consume('*') {
+                    self.skip_block_comment()?;
+
+                    return self.scan_next_token();
                 } else {
                     TokenKind::Slash
                 }
@@ -202,6 +206,19 @@ impl<'input> Scanner<'input> {
         };
 
         Ok(Spanned::new(Token { kind: token_kind }, token_span))
+    }
+
+    fn skip_block_comment(&mut self) -> Result<(), Diag> {
+        loop {
+            if self.peek() == CharStream::EOF_CHAR {
+                break Err(Diag::UnterminatedBlockComment);
+            }
+
+            if self.consume() == '*' && self.peek() == '/' {
+                self.consume();
+                break Ok(());
+            }
+        }
     }
 
     fn scan_character_constant(&mut self, encoding: CharEncoding) -> Result<TokenKind, Diag> {
@@ -454,6 +471,7 @@ pub enum Diag {
     EmptyCharacterConstant,
     UnterminatedCharacterConstant,
     UnterminatedStringLiteral,
+    UnterminatedBlockComment,
 }
 
 fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {

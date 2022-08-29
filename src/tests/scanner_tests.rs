@@ -436,7 +436,7 @@ fn backslashes_escape_anything_in_character_constant() {
 fn character_constant_may_not_start_with_utf8_prefix() {
     assert_eq!(
         scan_all("u8'x'"),
-        vec![
+        [
             (TokenKind::Identifier, "u8"),
             (
                 TokenKind::CharacterConstant {
@@ -740,6 +740,65 @@ proptest! {
     }
 }
 
+#[test]
+fn scanner_should_skip_block_comments() {
+    assert_eq!(scan_all("/*this block comment should be skipped*/"), []);
+}
+
+#[test]
+fn block_comments_allow_newlines_inside() {
+    assert_eq!(
+        try_scan_all(
+            r"
+            /*this block comment
+               contains many lines
+              
+               that are separated by line-feed characters
+               how nice
+            */
+            "
+        ),
+        []
+    );
+}
+
+#[test]
+fn block_comments_do_not_nest() {
+    assert_eq!(
+        try_scan_all("/* this is skipped /* this too */ not this */"),
+        [
+            Ok((TokenKind::Identifier, "not")),
+            Ok((TokenKind::Identifier, "this")),
+            Ok((TokenKind::Star, "*")),
+            Ok((TokenKind::Slash, "/"))
+        ]
+    );
+}
+
+#[test]
+fn block_comment_between_two_identifiers_should_scan_them_separately() {
+    assert_eq!(
+        scan_all("foo/*this is a comment*/bar"),
+        [
+            (TokenKind::Identifier, "foo"),
+            (TokenKind::Identifier, "bar"),
+        ]
+    );
+}
+
+#[test]
+fn diagnose_missing_block_comment_terminator() {
+    assert_eq!(
+        try_scan_all("/*this block comment doesn't end"),
+        [Err(Diag::UnterminatedBlockComment)]
+    );
+}
+
+#[test]
+fn diagnose_missing_block_comment_terminator_for_corner_case_of_empty_block_comment() {
+    assert_eq!(try_scan_all("/*"), [Err(Diag::UnterminatedBlockComment)]);
+}
+
 struct TokenKindAndLexemeIter<'input> {
     scanner: Scanner<'input>,
     source_file: SourceFile<'input>,
@@ -776,6 +835,10 @@ fn scan_all(input_text: &str) -> Vec<(TokenKind, &str)> {
     TokenKindAndLexemeIter::new(input_text)
         .flatten()
         .collect::<Vec<_>>()
+}
+
+fn try_scan_all(input_text: &str) -> Vec<Result<(TokenKind, &str), Diag>> {
+    TokenKindAndLexemeIter::new(input_text).collect::<Vec<_>>()
 }
 
 fn scan_first(input_text: &str) -> (TokenKind, &str) {
