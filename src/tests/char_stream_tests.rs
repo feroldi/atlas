@@ -37,9 +37,9 @@ fn lookahead_should_return_eof_when_char_stream_is_empty_no_matter_the_value_of_
 fn lookahead_should_return_eof_when_n_is_greater_or_equal_to_the_char_stream_length() {
     let mut char_stream = CharStream::with_text("abc");
 
-    assert_ne!(char_stream.lookahead(2), CharStream::EOF_CHAR);
-
     assert_eq!(char_stream.lookahead(3), CharStream::EOF_CHAR);
+    assert_eq!(char_stream.lookahead(4), CharStream::EOF_CHAR);
+    assert_eq!(char_stream.lookahead(5), CharStream::EOF_CHAR);
 }
 
 #[test]
@@ -81,6 +81,7 @@ fn lookahead_should_not_consume_the_char_stream() {
 #[test]
 fn consume_should_return_eof_when_char_stream_is_empty() {
     let mut char_stream = CharStream::with_text("");
+
     assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
 }
 
@@ -140,9 +141,6 @@ fn consume_should_turn_a_line_feed_and_carriage_return_into_line_feed_only() {
     assert_eq!(char_stream.peek(), 'a');
     assert_eq!(char_stream.consume(), 'a');
     assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(3));
-
-    assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
-    assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
 }
 
 #[test]
@@ -158,9 +156,6 @@ fn consume_should_turn_a_carriage_return_and_line_feed_into_line_feed_only() {
     assert_eq!(char_stream.peek(), 'a');
     assert_eq!(char_stream.consume(), 'a');
     assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(3));
-
-    assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
-    assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
 }
 
 #[test]
@@ -180,9 +175,6 @@ fn consume_should_not_deduplicate_line_feeds() {
     assert_eq!(char_stream.peek(), 'a');
     assert_eq!(char_stream.consume(), 'a');
     assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(3));
-
-    assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
-    assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
 }
 
 #[test]
@@ -202,9 +194,6 @@ fn consume_should_not_deduplicate_carriage_returns() {
     assert_eq!(char_stream.peek(), 'a');
     assert_eq!(char_stream.consume(), 'a');
     assert_eq!(char_stream.peek_byte_pos(), BytePos::from_usize(3));
-
-    assert_eq!(char_stream.peek(), CharStream::EOF_CHAR);
-    assert_eq!(char_stream.consume(), CharStream::EOF_CHAR);
 }
 
 #[test]
