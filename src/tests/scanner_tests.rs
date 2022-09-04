@@ -776,6 +776,32 @@ fn block_comments_do_not_nest() {
 }
 
 #[test]
+fn block_comments_do_not_form_inside_string_literals() {
+    assert_eq!(
+        try_scan_first(r#""foo /* bar */ baz""#),
+        Ok((
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Byte
+            },
+            r#""foo /* bar */ baz""#
+        )),
+    );
+}
+
+#[test]
+fn block_comments_do_not_form_inside_character_constants() {
+    assert_eq!(
+        try_scan_first("'foo /* bar */ baz'"),
+        Ok((
+            TokenKind::CharacterConstant {
+                encoding: CharEncoding::Byte
+            },
+            "'foo /* bar */ baz'"
+        )),
+    );
+}
+
+#[test]
 fn block_comment_between_two_identifiers_should_scan_them_separately() {
     assert_eq!(
         scan_all("foo/*this is a comment*/bar"),
