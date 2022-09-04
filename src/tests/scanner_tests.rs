@@ -812,6 +812,24 @@ fn block_comment_between_two_identifiers_should_scan_them_separately() {
     );
 }
 
+proptest! {
+#[test]
+    fn scanner_should_skip_line_comments(
+        comment_text in printable_chars(),
+        newline in newline()
+    ) {
+        let input_text = format!("foo//{}{}bar", comment_text, newline);
+
+        assert_eq!(
+            try_scan_all(&input_text),
+            [
+                Ok((TokenKind::Identifier, "foo")),
+                Ok((TokenKind::Identifier, "bar")),
+            ]
+        );
+    }
+}
+
 #[test]
 fn diagnose_missing_block_comment_terminator() {
     assert_eq!(

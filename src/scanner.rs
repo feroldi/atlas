@@ -90,6 +90,10 @@ impl<'input> Scanner<'input> {
                     self.skip_block_comment()?;
 
                     return self.scan_next_token();
+                } else if self.try_consume('/') {
+                    self.skip_line_comment()?;
+
+                    return self.scan_next_token();
                 } else {
                     TokenKind::Slash
                 }
@@ -219,6 +223,14 @@ impl<'input> Scanner<'input> {
                 break Ok(());
             }
         }
+    }
+
+    fn skip_line_comment(&mut self) -> Result<(), Diag> {
+        while !is_newline(self.peek()) {
+            self.consume();
+        }
+
+        Ok(())
     }
 
     fn scan_character_constant(&mut self, encoding: CharEncoding) -> Result<TokenKind, Diag> {

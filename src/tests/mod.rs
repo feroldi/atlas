@@ -21,6 +21,9 @@ lazy_static! {
         [upper_alpha, lower_alpha, digits, graphic_chars, spaces].join("")
     };
 
+    static ref PRINTABLE_CHAR_PATTERN: String = {
+        ('\x20'..='\x7e').collect::<_>()
+    };
 }
 
 pub fn source_char() -> impl Strategy<Value = String> {
@@ -43,10 +46,26 @@ pub fn non_source_char() -> impl Strategy<Value = String> {
     string_regex(&format!("[^{}\0]", escape(&SOURCE_CHAR_PATTERN))).unwrap()
 }
 
+pub fn printable_chars() -> impl Strategy<Value = String> {
+    printable_chars_except(&[])
+}
+
+pub fn printable_chars_except(excluded_chars: &[char]) -> impl Strategy<Value = String> {
+    string_regex(&format!(
+        "[{}]+",
+        &escape(&PRINTABLE_CHAR_PATTERN.replace(excluded_chars, ""))
+    ))
+    .unwrap()
+}
+
 pub fn whitespace() -> impl Strategy<Value = String> {
     let spaces = "\x20\t\n\r\x0b\x0c";
 
     string_regex(&format!("[{}]+", spaces)).unwrap()
+}
+
+pub fn newline() -> impl Strategy<Value = String> {
+    string_regex("\n|\r|\n\r|\r\n").unwrap()
 }
 
 pub fn source_punctuation() -> impl Strategy<Value = String> {
