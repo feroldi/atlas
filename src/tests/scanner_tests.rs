@@ -9,9 +9,7 @@ use crate::tests::*;
 
 #[test]
 fn scanning_an_empty_input_should_return_an_eof_token() {
-    let mut scanner = Scanner::with_input("");
-
-    assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+    assert_eq!(try_scan_all(""), []);
 }
 
 #[test]
@@ -346,10 +344,7 @@ proptest! {
 
 #[test]
 fn character_constant_cannot_be_empty() {
-    let mut scanner = Scanner::with_input("''");
-
-    assert_eq!(scanner.scan_next_token(), Err(Diag::EmptyCharacterConstant));
-    assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
+    assert_eq!(try_scan_first("''"), Err(Diag::EmptyCharacterConstant));
 }
 
 proptest! {
@@ -359,13 +354,11 @@ proptest! {
     ) {
         for newline_or_nul in ['\n', '\r', '\0'] {
             let input_text = format!("'{}{}", c_char_seq, newline_or_nul);
-            let mut scanner = Scanner::with_input(&input_text);
 
             assert_eq!(
-                scanner.scan_next_token(),
+                try_scan_first(&input_text),
                 Err(Diag::UnterminatedCharacterConstant)
             );
-            assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
         }
     }
 }
@@ -374,13 +367,11 @@ proptest! {
 fn character_constant_cannot_abruptly_end_in_newline_or_nul() {
     for newline_or_nul in ['\n', '\r', '\0'] {
         let input_text = format!("'{}", newline_or_nul);
-        let mut scanner = Scanner::with_input(&input_text);
 
         assert_eq!(
-            scanner.scan_next_token(),
+            try_scan_first(&input_text),
             Err(Diag::UnterminatedCharacterConstant)
         );
-        assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
     }
 }
 
@@ -578,13 +569,10 @@ proptest! {
                 end=newline_or_nul
             );
 
-            let mut scanner = Scanner::with_input(&input_text);
-
             assert_eq!(
-                scanner.scan_next_token(),
+                try_scan_first(&input_text),
                 Err(Diag::UnterminatedStringLiteral)
             );
-            assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
         }
     }
 }
@@ -593,13 +581,11 @@ proptest! {
 fn string_literal_cannot_abruptly_end_in_newline_or_nul() {
     for newline_or_nul in ['\n', '\r', '\0'] {
         let input_text = format!("\"{}", newline_or_nul);
-        let mut scanner = Scanner::with_input(&input_text);
 
         assert_eq!(
-            scanner.scan_next_token(),
+            try_scan_first(&input_text),
             Err(Diag::UnterminatedStringLiteral)
         );
-        assert_eq!(scanner.scan_next_token(), Ok(Token::EOF));
     }
 }
 
@@ -733,10 +719,12 @@ proptest! {
     fn scanner_should_diagnose_characters_not_in_source_charset(
         non_source_char in non_source_char()
     ) {
-        let mut scanner = Scanner::with_input(&non_source_char);
         let unrec_char = non_source_char.chars().next().unwrap();
 
-        assert_eq!(scanner.scan_next_token(), Err(Diag::UnrecognizedChar(unrec_char)));
+        assert_eq!(
+            try_scan_first(&non_source_char),
+            Err(Diag::UnrecognizedChar(unrec_char))
+        );
     }
 }
 
