@@ -831,57 +831,42 @@ fn diagnose_missing_block_comment_terminator_for_corner_case_of_empty_block_comm
     assert_eq!(try_scan_all("/*"), [Err(Diag::UnterminatedBlockComment)]);
 }
 
-struct TokenKindAndLexemeIter<'input> {
-    scanner: Scanner<'input>,
-    source_file: SourceFile<'input>,
-}
-
-impl<'input> TokenKindAndLexemeIter<'input> {
-    fn new(input_text: &'input str) -> TokenKindAndLexemeIter<'input> {
-        TokenKindAndLexemeIter {
-            scanner: Scanner::with_input(input_text),
-            source_file: SourceFile::new(input_text),
-        }
-    }
-}
-
-impl<'input> Iterator for TokenKindAndLexemeIter<'input> {
-    type Item = Result<(TokenKind, &'input str), Diag>;
-
-    fn next(&mut self) -> Option<Result<(TokenKind, &'input str), Diag>> {
-        match self.scanner.scan_next_token() {
-            Ok(token) => {
-                if token != Token::EOF {
-                    let lexeme = self.source_file.get_text_snippet(token);
-                    Some(Ok((token.kind, lexeme)))
-                } else {
-                    None
-                }
-            }
-            Err(diag) => Some(Err(diag)),
-        }
-    }
-}
-
-fn scan_all(input_text: &str) -> Vec<(TokenKind, &str)> {
-    TokenKindAndLexemeIter::new(input_text)
-        .flatten()
-        .collect::<Vec<_>>()
-}
-
 fn try_scan_all(input_text: &str) -> Vec<Result<(TokenKind, &str), Diag>> {
-    TokenKindAndLexemeIter::new(input_text).collect::<Vec<_>>()
-}
+    let mut scanner = Scanner::with_input(input_text);
+    let source_file = SourceFile::new(input_text);
 
-fn scan_first(input_text: &str) -> (TokenKind, &str) {
-    TokenKindAndLexemeIter::new(input_text)
-        .next()
-        .unwrap()
-        .unwrap()
+    let mut tokens = Vec::new();
+
+    'outer: loop {
+        match scanner.scan_next_token() {
+            Ok(token) if token != Token::EOF => {
+                let lexeme = source_file.get_text_snippet(token);
+                tokens.push(Ok((token.kind, lexeme)));
+            }
+            Ok(_) => break 'outer,
+            Err(diag) => tokens.push(Err(diag)),
+        }
+    }
+
+    tokens
 }
 
 fn try_scan_first(input_text: &str) -> Result<(TokenKind, &str), Diag> {
-    TokenKindAndLexemeIter::new(input_text).next().unwrap()
+    let tokens = try_scan_all(input_text);
+    assert_ne!(tokens.len(), 0);
+
+    tokens[0]
+}
+
+fn scan_all(input_text: &str) -> Vec<(TokenKind, &str)> {
+    try_scan_all(input_text).into_iter().flatten().collect()
+}
+
+fn scan_first(input_text: &str) -> (TokenKind, &str) {
+    let tokens = scan_all(input_text);
+    assert_ne!(tokens.len(), 0);
+
+    tokens[0]
 }
 
 fn is_keyword(lexeme: &str) -> bool {

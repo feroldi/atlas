@@ -1,18 +1,23 @@
 use std::ops::{Add, AddAssign};
 
-pub struct SourceFile<'a> {
-    source_text: &'a str,
+pub struct SourceFile<'s> {
+    source_text: &'s str,
 }
 
-impl<'a> SourceFile<'a> {
-    pub fn new(source_text: &str) -> SourceFile {
+impl<'s> SourceFile<'s> {
+    pub fn new(source_text: &'s str) -> SourceFile<'s> {
         SourceFile { source_text }
     }
 
-    pub fn get_text_snippet(&self, span: impl Into<Span>) -> &'a str {
+    pub fn get_text_snippet(&self, span: impl Into<Span>) -> &'s str {
         let span = span.into();
         let (start_idx, end_idx) = (span.start.to_usize(), span.end.to_usize());
         &self.source_text[start_idx..end_idx]
+    }
+
+    // TODO(feroldi): Test this.
+    pub fn get_text(&self) -> &str {
+        self.source_text
     }
 }
 
