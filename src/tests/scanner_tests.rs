@@ -818,6 +818,32 @@ proptest! {
     }
 }
 
+#[test]
+fn line_comments_do_not_form_inside_string_literals() {
+    assert_eq!(
+        try_scan_first(r#""foo // bar ""#),
+        Ok((
+            TokenKind::StringLiteral {
+                encoding: CharEncoding::Byte
+            },
+            r#""foo // bar ""#
+        )),
+    );
+}
+
+#[test]
+fn line_comments_do_not_form_inside_character_constants() {
+    assert_eq!(
+        try_scan_first(r#"'foo // bar '"#),
+        Ok((
+            TokenKind::CharacterConstant {
+                encoding: CharEncoding::Byte
+            },
+            r#"'foo // bar '"#
+        )),
+    );
+}
+
 proptest! {
 #[test]
     fn line_comment_can_end_in_eof(comment_text in printable_chars()) {
