@@ -818,6 +818,24 @@ proptest! {
     }
 }
 
+proptest! {
+#[test]
+    fn line_comment_can_end_in_eof(comment_text in printable_chars()) {
+        // If we get an EOF while scanning a line comment, the behavior is undefined as
+        // per [C17 6.4.9/2], because it doesn't specify what happens if there is no new
+        // line character to be found. That's quite counterproductive, so here we just
+        // stop scanning as if we would have found a new line.
+        let input_text = format!("foo//{}", comment_text);
+
+        assert_eq!(
+            try_scan_all(&input_text),
+            [
+                Ok((TokenKind::Identifier, "foo")),
+            ]
+        );
+    }
+}
+
 #[test]
 fn diagnose_missing_block_comment_terminator() {
     assert_eq!(

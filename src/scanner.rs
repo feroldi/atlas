@@ -226,7 +226,11 @@ impl<'input> Scanner<'input> {
     }
 
     fn skip_line_comment(&mut self) -> Result<(), Diag> {
-        while !is_newline(self.peek()) {
+        // If we get an EOF while scanning a line comment, the behavior is undefined as
+        // per [C17 6.4.9/2], because it doesn't specify what happens if there is no new
+        // line character to be found. That's quite counterproductive, so here we just
+        // stop scanning as if we would have found a new line.
+        while self.peek() != CharStream::EOF_CHAR && !is_newline(self.peek()) {
             self.consume();
         }
 
