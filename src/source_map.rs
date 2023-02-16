@@ -77,6 +77,7 @@ impl Span {
     }
 }
 
+#[const_trait]
 pub trait Pos: Sized + Add + AddAssign {
     fn from_usize(value: usize) -> Self;
     fn to_usize(self) -> usize;
