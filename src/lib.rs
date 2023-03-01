@@ -1,6 +1,7 @@
 #![feature(assert_matches, const_trait_impl)]
 
 pub mod char_stream;
+pub mod preprocessor;
 pub mod scanner;
 pub mod source_map;
 
