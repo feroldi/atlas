@@ -563,9 +563,9 @@ const fn is_space(ch: char) -> bool {
 }
 
 const fn is_digit(ch: char) -> bool {
-    matches!(ch, '0'..='9')
+    ch.is_ascii_digit()
 }
 
 const fn is_alpha(ch: char) -> bool {
-    matches!(ch, 'A'..='Z' | 'a'..='z')
+    ch.is_ascii_alphabetic()
 }
