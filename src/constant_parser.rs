@@ -1,3 +1,15 @@
+use std::iter::Peekable;
+
+pub(crate) fn parse_numeric_constant(token_lexeme: &str) -> NumericConstant {
+    let attrs = parse_num_const_attributes(token_lexeme);
+    let (value, has_overflowed) = eval_integer_constant(attrs);
+
+    NumericConstant {
+        value: NumConstVal::Int(value),
+        has_overflowed,
+    }
+}
+
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) struct NumericConstant {
     pub(crate) value: NumConstVal,
@@ -10,27 +22,61 @@ pub(crate) enum NumConstVal {
     Int(u64),
 }
 
-pub(crate) fn parse_numeric_constant(input: &str) -> NumericConstant {
-    if input == "0" {
-        return NumericConstant {
-            value: NumConstVal::Int(0),
-            has_overflowed: false,
-        };
+fn parse_num_const_attributes(token_lexeme: &str) -> NumConstAttrs {
+    let mut seq = Seq::new(token_lexeme);
+
+    let radix;
+    let digits_start;
+    let digits_end;
+
+    if seq.peek() != b'0' {
+        radix = 10;
+
+        while seq.peek().is_ascii_digit() {
+            seq.bump();
+        }
+
+        (digits_start, digits_end) = (0, seq.pos);
+        // TODO: parse suffix.
+    } else if token_lexeme.len() == 1 {
+        radix = 10;
+        (digits_start, digits_end) = (0, 1);
+    } else {
+        seq.bump();
+
+        if matches!(seq.peek(), b'x' | b'X') {
+            seq.bump();
+
+            radix = 16;
+            digits_start = 2;
+
+            while seq.peek().is_ascii_hexdigit() {
+                seq.bump();
+            }
+        } else {
+            radix = 8;
+            digits_start = 1;
+
+            while seq.peek().is_ascii_octdigit() {
+                seq.bump();
+            }
+        }
+
+        digits_end = seq.pos;
     }
 
-    let (input, radix) = if input.starts_with("0x") || input.starts_with("0X") {
-        (&input[2..], 16)
-    } else if let Some(stripped) = input.strip_prefix('0') {
-        (stripped, 8)
-    } else {
-        (input, 10)
-    };
+    NumConstAttrs {
+        radix,
+        digits: &token_lexeme.as_bytes()[digits_start..digits_end],
+    }
+}
 
+fn eval_integer_constant(attrs: NumConstAttrs) -> (u64, bool) {
     let mut value = 0u64;
     let mut has_overflowed = false;
 
-    for &digit in input.as_bytes() {
-        let (low_mul, overflowed) = value.overflowing_mul(radix);
+    for &digit in attrs.digits {
+        let (low_mul, overflowed) = value.overflowing_mul(attrs.radix);
         has_overflowed |= overflowed;
         value = low_mul;
 
@@ -39,9 +85,39 @@ pub(crate) fn parse_numeric_constant(input: &str) -> NumericConstant {
         value = low_add;
     }
 
-    NumericConstant {
-        value: NumConstVal::Int(value),
-        has_overflowed,
+    (value, has_overflowed)
+}
+
+struct NumConstAttrs<'a> {
+    radix: u64,
+    digits: &'a [u8],
+}
+
+struct Seq<'a> {
+    iter: Peekable<std::slice::Iter<'a, u8>>,
+    pos: usize,
+}
+
+impl Seq<'_> {
+    fn new(token_lexeme: &str) -> Seq {
+        Seq {
+            iter: token_lexeme.as_bytes().iter().peekable(),
+            pos: 0,
+        }
+    }
+
+    fn peek(&mut self) -> u8 {
+        self.iter.peek().map(|&&c| c).unwrap_or(b'\0')
+    }
+
+    fn bump(&mut self) -> u8 {
+        match self.iter.next() {
+            Some(&ch) => {
+                self.pos += 1;
+                ch
+            }
+            None => b'\0',
+        }
     }
 }
 
