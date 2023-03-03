@@ -130,7 +130,6 @@ fn octal_intenger_constant_that_goes_a_bit_over_64_bits_should_be_flagged_as_ove
     );
 }
 
-// TODO: Test overflow.
 proptest! {
     #[test]
     fn constants_that_start_with_zero_and_x_should_parse_as_hexadecimal_integer_constants(
@@ -148,4 +147,43 @@ proptest! {
 
         assert_eq!(parse_numeric_constant(&input), expected);
     }
+}
+
+proptest! {
+    #[test]
+    fn hexadecimal_intenger_constants_that_go_over_64_bits_should_be_flagged_as_overflowed(
+        input in "0[xX][1-9a-fA-F]{17,32}"
+    ) {
+        let raw_value = u128::from_str_radix(&input[2..], 16).unwrap();
+
+        let expected = NumericConstant {
+            value: NumConstVal::Int(raw_value as u64),
+            has_overflowed: true,
+        };
+
+        assert_eq!(parse_numeric_constant(&input), expected);
+    }
+}
+
+#[test]
+fn hexadecimal_intenger_constant_that_goes_a_bit_over_64_bits_should_be_flagged_as_overflowed() {
+    let valid_input = "0xffffffffffffffff";
+
+    assert_eq!(
+        parse_numeric_constant(valid_input),
+        NumericConstant {
+            value: NumConstVal::Int(u64::MAX),
+            has_overflowed: false,
+        }
+    );
+
+    let invalid_input = "0x10000000000000000";
+
+    assert_eq!(
+        parse_numeric_constant(invalid_input),
+        NumericConstant {
+            value: NumConstVal::Int(0),
+            has_overflowed: true,
+        }
+    );
 }
