@@ -6,6 +6,7 @@ use proptest::string::string_regex;
 use regex::escape;
 
 mod char_stream_tests;
+mod constant_parser_tests;
 mod preprocessor_tests;
 mod scanner_tests;
 mod source_map_tests;
