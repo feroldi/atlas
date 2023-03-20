@@ -1,15 +1,5 @@
 use std::iter::Peekable;
 
-pub(crate) fn parse_numeric_constant(token_lexeme: &str) -> ParseResult {
-    let attrs = parse_num_const_attributes(token_lexeme);
-    let (value, has_overflowed) = eval_integer_constant(attrs);
-
-    ParseResult {
-        num_const: NumConst::Int(value),
-        has_overflowed,
-    }
-}
-
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) struct ParseResult {
     pub(crate) num_const: NumConst,
@@ -18,16 +8,38 @@ pub(crate) struct ParseResult {
 
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) enum NumConst {
-    Int(IntConst),
+    Int(IntegerConst),
 }
-
 
 #[derive(PartialEq, Eq, Debug)]
-pub(crate) enum IntConst {
+pub(crate) struct IntegerConst {
     // TODO: Labels for suffixes.
-    value: u64,
+    pub(crate) value: u64,
+    pub(crate) is_unsigned: bool,
 }
 
+pub(crate) fn parse_numeric_constant(token_lexeme: &str) -> ParseResult {
+    let attrs = parse_num_const_attributes(token_lexeme);
+
+    // TODO(feroldi): Check whether it is an integer or floating point before
+    // evaluating.
+    let (value, has_overflowed) = eval_integer_constant(attrs);
+
+    let integer = IntegerConst {
+        value,
+        is_unsigned: false,
+    };
+
+    ParseResult {
+        num_const: NumConst::Int(integer),
+        has_overflowed,
+    }
+}
+
+struct NumConstAttrs<'a> {
+    radix: u64,
+    digits: &'a [u8],
+}
 
 fn parse_num_const_attributes(token_lexeme: &str) -> NumConstAttrs {
     let mut seq = Seq::new(token_lexeme);
@@ -93,11 +105,6 @@ fn eval_integer_constant(attrs: NumConstAttrs) -> (u64, bool) {
     }
 
     (value, has_overflowed)
-}
-
-struct NumConstAttrs<'a> {
-    radix: u64,
-    digits: &'a [u8],
 }
 
 struct Seq<'a> {
