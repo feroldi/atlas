@@ -3,7 +3,8 @@
 use proptest::prelude::*;
 use proptest::string::string_regex;
 
-use crate::scanner::{Bracket, CharEncoding, Diag, Scanner, Token, TokenKind};
+use crate::diagnostics::Diag;
+use crate::scanner::{Bracket, CharEncoding, Scanner, Token, TokenKind};
 use crate::source_map::SourceFile;
 use crate::tests::*;
 

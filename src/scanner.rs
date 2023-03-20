@@ -1,18 +1,19 @@
 use crate::char_stream::CharStream;
+use crate::diagnostics::Diag;
 use crate::source_map::{Span, Spanned};
 
-pub struct Scanner<'input> {
+pub(crate) struct Scanner<'input> {
     chars: CharStream<'input>,
 }
 
 impl<'input> Scanner<'input> {
-    pub fn with_input(source_text: &'input str) -> Scanner<'input> {
+    pub(crate) fn with_input(source_text: &'input str) -> Scanner<'input> {
         Scanner {
             chars: CharStream::with_text(source_text),
         }
     }
 
-    pub fn scan_next_token(&mut self) -> Result<Spanned<Token>, Diag> {
+    pub(crate) fn scan_next_token(&mut self) -> Result<Spanned<Token>, Diag> {
         while is_space(self.peek()) {
             self.consume();
         }
@@ -479,15 +480,6 @@ pub enum CharEncoding {
     Utf8,
     Utf16,
     Utf32,
-}
-
-#[derive(PartialEq, Debug, Copy, Clone)]
-pub enum Diag {
-    UnrecognizedChar(char),
-    EmptyCharacterConstant,
-    UnterminatedCharacterConstant,
-    UnterminatedStringLiteral,
-    UnterminatedBlockComment,
 }
 
 fn get_keyword_kind_for_lexeme(lexeme: &str) -> Option<TokenKind> {
