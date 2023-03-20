@@ -1,26 +1,33 @@
 use std::iter::Peekable;
 
-pub(crate) fn parse_numeric_constant(token_lexeme: &str) -> NumericConstant {
+pub(crate) fn parse_numeric_constant(token_lexeme: &str) -> ParseResult {
     let attrs = parse_num_const_attributes(token_lexeme);
     let (value, has_overflowed) = eval_integer_constant(attrs);
 
-    NumericConstant {
-        value: NumConstVal::Int(value),
+    ParseResult {
+        num_const: NumConst::Int(value),
         has_overflowed,
     }
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub(crate) struct NumericConstant {
-    pub(crate) value: NumConstVal,
+pub(crate) struct ParseResult {
+    pub(crate) num_const: NumConst,
     pub(crate) has_overflowed: bool,
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub(crate) enum NumConstVal {
-    // TODO: Labels for suffixes.
-    Int(u64),
+pub(crate) enum NumConst {
+    Int(IntConst),
 }
+
+
+#[derive(PartialEq, Eq, Debug)]
+pub(crate) enum IntConst {
+    // TODO: Labels for suffixes.
+    value: u64,
+}
+
 
 fn parse_num_const_attributes(token_lexeme: &str) -> NumConstAttrs {
     let mut seq = Seq::new(token_lexeme);
