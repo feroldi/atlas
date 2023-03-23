@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use crate::ast::{BuiltinTypeKind, ExternalDecl, TranslationUnit, Type, VarDecl};
+use crate::ast::{BuiltinTypeKind, ExternalDecl, IntegerLiteral, TranslationUnit, Type, VarDecl};
 use crate::diagnostics::Diag;
 use crate::parser::Parser;
 
@@ -22,6 +22,33 @@ fn parse_basic_top_level_variable_declaration() {
     let var_decl = VarDecl {
         type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
         identifier: "x".to_owned(),
+        initializer: None,
+    };
+
+    let expected = TranslationUnit {
+        external_decls: vec![ExternalDecl::VarDecl(var_decl)],
+    };
+
+    assert_eq!(result, Ok(expected));
+}
+
+#[test]
+fn parse_basic_top_level_variable_declaration_with_initializer() {
+    let result = parse(
+        r#"
+        int x = 42;
+        "#,
+    );
+
+    let initializer = IntegerLiteral {
+        value: 42,
+        ty: Type::BuiltinType(BuiltinTypeKind::Int),
+    };
+
+    let var_decl = VarDecl {
+        type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+        identifier: "x".to_owned(),
+        initializer: Some(initializer),
     };
 
     let expected = TranslationUnit {
