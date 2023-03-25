@@ -89,7 +89,6 @@ impl CharStream<'_> {
         let peeked = self.cached_peek.unwrap();
 
         if peeked.ch != CharStream::EOF_CHAR {
-            let peeked = self.cached_peek.unwrap();
             self.byte_pos_of_peeked_char += BytePos::from_usize(peeked.size);
             self.cached_peek = None;
         }
