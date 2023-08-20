@@ -25,7 +25,8 @@ impl<'src> Parser<'src> {
         if tok == Token::EOF {
             Err(vec![Diag::EmptyTranslationUnit])
         } else {
-            debug_assert!(tok.kind == TokenKind::KwInt);
+            debug_assert!(tok.kind == TokenKind::KwInt || tok.kind == TokenKind::KwLong);
+            let type_spec = map_token_kind_to_type(tok.kind);
 
             let ident_tok = self.consume_tok().unwrap();
             debug_assert!(ident_tok.kind == TokenKind::Identifier);
@@ -57,7 +58,7 @@ impl<'src> Parser<'src> {
             let lexeme = self.source_file.get_text_snippet(ident_tok);
 
             let var_decl = VarDecl {
-                type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+                type_specifier: type_spec,
                 identifier: lexeme.to_owned(),
                 initializer,
             };
@@ -94,5 +95,13 @@ impl<'src> Parser<'src> {
                 Ok(peeked_tok)
             }
         }
+    }
+}
+
+fn map_token_kind_to_type(tok_kind: TokenKind) -> Type {
+    match tok_kind {
+        TokenKind::KwInt => Type::BuiltinType(BuiltinTypeKind::Int),
+        TokenKind::KwLong => Type::BuiltinType(BuiltinTypeKind::Long),
+        _ => unimplemented!("missing impl of other types"),
     }
 }

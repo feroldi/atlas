@@ -147,13 +147,6 @@ fn scan_single_nondigit_char_as_identifier() {
     }
 }
 
-// TODO(feroldi): @charset Refactor this characters set into a module.
-fn identifier() -> impl Strategy<Value = String> {
-    string_regex("[_a-zA-Z][_0-9a-zA-Z]*")
-        .unwrap()
-        .prop_filter("must not be a keyword", |ident| !is_keyword(ident))
-}
-
 proptest! {
     #[test]
     fn scan_valid_identifier(input_text in identifier()) {
@@ -912,54 +905,4 @@ fn scan_first(input_text: &str) -> (TokenKind, &str) {
     assert_ne!(tokens.len(), 0);
 
     tokens[0]
-}
-
-fn is_keyword(lexeme: &str) -> bool {
-    matches!(
-        lexeme,
-        "auto"
-            | "break"
-            | "case"
-            | "char"
-            | "const"
-            | "continue"
-            | "default"
-            | "do"
-            | "double"
-            | "else"
-            | "enum"
-            | "extern"
-            | "float"
-            | "for"
-            | "goto"
-            | "if"
-            | "inline"
-            | "int"
-            | "long"
-            | "register"
-            | "restrict"
-            | "return"
-            | "short"
-            | "signed"
-            | "sizeof"
-            | "static"
-            | "struct"
-            | "switch"
-            | "typedef"
-            | "union"
-            | "unsigned"
-            | "void"
-            | "volatile"
-            | "while"
-            | "_Alignas"
-            | "_Alignof"
-            | "_Atomic"
-            | "_Bool"
-            | "_Complex"
-            | "_Generic"
-            | "_Imaginary"
-            | "_Noreturn"
-            | "_Static_assert"
-            | "_Thread_local",
-    )
 }

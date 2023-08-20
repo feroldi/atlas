@@ -1,8 +1,11 @@
 #![cfg(test)]
 
+use proptest::prelude::*;
+
 use crate::ast::{BuiltinTypeKind, ExternalDecl, IntegerLiteral, TranslationUnit, Type, VarDecl};
 use crate::diagnostics::Diag;
 use crate::parser::Parser;
+use crate::tests::*;
 
 #[test]
 fn parse_empty_translation_unit_should_issue_an_error() {
@@ -11,51 +14,81 @@ fn parse_empty_translation_unit_should_issue_an_error() {
     assert_eq!(result, Err(vec![Diag::EmptyTranslationUnit]));
 }
 
-#[test]
-fn parse_basic_top_level_variable_declaration() {
-    let result = parse(
-        r#"
-        int x;
-        "#,
-    );
+proptest! {
+    #[test]
+    fn parse_basic_top_level_variable_declaration(
+        type_spec in "int|long",
+        ident_name in identifier(),
+    ) {
+        let result = parse(
+            &format!(
+                r#"
+                {type_spec} {ident_name};
+                "#,
+                type_spec=type_spec,
+                ident_name=ident_name,
+            )
+        );
 
-    let var_decl = VarDecl {
-        type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
-        identifier: "x".to_owned(),
-        initializer: None,
-    };
+        let expected_type_kind = match type_spec.as_ref() {
+            "int" => BuiltinTypeKind::Int,
+            "long" => BuiltinTypeKind::Long,
+            _ => panic!("forgot to cover extra types"),
+        };
 
-    let expected = TranslationUnit {
-        external_decls: vec![ExternalDecl::VarDecl(var_decl)],
-    };
+        let var_decl = VarDecl {
+            type_specifier: Type::BuiltinType(expected_type_kind),
+            identifier: ident_name,
+            initializer: None,
+        };
 
-    assert_eq!(result, Ok(expected));
+        let expected = TranslationUnit {
+            external_decls: vec![ExternalDecl::VarDecl(var_decl)],
+        };
+
+        assert_eq!(result, Ok(expected));
+    }
 }
 
+proptest! {
 #[test]
-fn parse_basic_top_level_variable_declaration_with_initializer() {
-    let result = parse(
-        r#"
-        int x = 42;
-        "#,
-    );
+    fn parse_basic_top_level_variable_declaration_with_initializer(
+        type_spec in "int|long",
+        ident_name in identifier(),
+    ) {
+        let result = parse(
+            &format!(
+                r#"
+                {type_spec} {ident_name} = 42;
+                "#,
+                type_spec=type_spec,
+                ident_name=ident_name,
+            )
+        );
 
-    let initializer = IntegerLiteral {
-        value: 42,
-        ty: Type::BuiltinType(BuiltinTypeKind::Int),
-    };
+        let expected_type_kind = match type_spec.as_ref() {
+            "int" => BuiltinTypeKind::Int,
+            "long" => BuiltinTypeKind::Long,
+            _ => panic!("forgot to cover extra types"),
+        };
 
-    let var_decl = VarDecl {
-        type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
-        identifier: "x".to_owned(),
-        initializer: Some(initializer),
-    };
+        let initializer = IntegerLiteral {
+            value: 42,
+            ty: Type::BuiltinType(BuiltinTypeKind::Int),
+        };
 
-    let expected = TranslationUnit {
-        external_decls: vec![ExternalDecl::VarDecl(var_decl)],
-    };
+        let var_decl = VarDecl {
+            type_specifier: Type::BuiltinType(expected_type_kind),
+            identifier: ident_name,
+            initializer: Some(initializer),
+        };
 
-    assert_eq!(result, Ok(expected));
+        let expected = TranslationUnit {
+            external_decls: vec![ExternalDecl::VarDecl(var_decl)],
+        };
+
+        assert_eq!(result, Ok(expected));
+    }
 }
 
 fn parse(source_text: &str) -> Result<TranslationUnit, Vec<Diag>> {

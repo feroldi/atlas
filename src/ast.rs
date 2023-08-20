@@ -30,4 +30,5 @@ pub(crate) enum Type {
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) enum BuiltinTypeKind {
     Int,
+    Long,
 }
