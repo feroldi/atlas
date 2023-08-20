@@ -25,49 +25,56 @@ impl<'src> Parser<'src> {
         if tok == Token::EOF {
             Err(vec![Diag::EmptyTranslationUnit])
         } else {
-            debug_assert!(tok.kind == TokenKind::KwInt || tok.kind == TokenKind::KwLong);
-            let type_spec = map_token_kind_to_type(tok.kind);
-
-            let ident_tok = self.consume_tok().unwrap();
-            debug_assert!(ident_tok.kind == TokenKind::Identifier);
-
-            let initializer = if self.peek_tok().unwrap().kind == TokenKind::Equal {
-                self.consume_tok().unwrap();
-
-                let init_tok = self.consume_tok().unwrap();
-                debug_assert!(init_tok.kind == TokenKind::NumericConstant);
-
-                let parse_result =
-                    parse_numeric_constant(self.source_file.get_text_snippet(init_tok));
-                debug_assert!(!parse_result.has_overflowed);
-
-                match parse_result.num_const {
-                    NumConst::Int(int_const) => {
-                        debug_assert!(!int_const.is_unsigned);
-
-                        Some(IntegerLiteral {
-                            value: int_const.value,
-                            ty: Type::BuiltinType(BuiltinTypeKind::Int),
-                        })
-                    }
-                }
-            } else {
-                None
-            };
-
-            let lexeme = self.source_file.get_text_snippet(ident_tok);
-
-            let var_decl = VarDecl {
-                type_specifier: type_spec,
-                identifier: lexeme.to_owned(),
-                initializer,
-            };
-
             let translation_unit = TranslationUnit {
-                external_decls: vec![ExternalDecl::VarDecl(var_decl)],
+                external_decls: vec![self.parse_external_decl(*tok)],
             };
 
             Ok(translation_unit)
+        }
+    }
+
+    fn parse_external_decl(&mut self, type_spec_tok: Token) -> ExternalDecl {
+        ExternalDecl::VarDecl(self.parse_var_decl(type_spec_tok))
+    }
+
+    fn parse_var_decl(&mut self, type_spec_tok: Token) -> VarDecl {
+        debug_assert!(
+            type_spec_tok.kind == TokenKind::KwInt || type_spec_tok.kind == TokenKind::KwLong
+        );
+        let type_spec = map_token_kind_to_type(type_spec_tok.kind);
+
+        let ident_tok = self.consume_tok().unwrap();
+        debug_assert!(ident_tok.kind == TokenKind::Identifier);
+
+        let initializer = if self.peek_tok().unwrap().kind == TokenKind::Equal {
+            self.consume_tok().unwrap();
+
+            let init_tok = self.consume_tok().unwrap();
+            debug_assert!(init_tok.kind == TokenKind::NumericConstant);
+
+            let parse_result = parse_numeric_constant(self.source_file.get_text_snippet(init_tok));
+            debug_assert!(!parse_result.has_overflowed);
+
+            match parse_result.num_const {
+                NumConst::Int(int_const) => {
+                    debug_assert!(!int_const.is_unsigned);
+
+                    Some(IntegerLiteral {
+                        value: int_const.value,
+                        ty: Type::BuiltinType(BuiltinTypeKind::Int),
+                    })
+                }
+            }
+        } else {
+            None
+        };
+
+        let lexeme = self.source_file.get_text_snippet(ident_tok);
+
+        VarDecl {
+            type_specifier: type_spec,
+            identifier: lexeme.to_owned(),
+            initializer,
         }
     }
 
