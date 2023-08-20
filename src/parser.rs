@@ -1,7 +1,9 @@
-use crate::ast::{BuiltinTypeKind, ExternalDecl, IntegerLiteral, TranslationUnit, Type, VarDecl};
+use crate::ast::{
+    BuiltinTypeKind, Decl, FuncDecl, IntegerLiteral, Param, TranslationUnit, Type, VarDecl,
+};
 use crate::constant_parser::{parse_numeric_constant, NumConst};
 use crate::diagnostics::Diag;
-use crate::scanner::{Scanner, Token, TokenKind};
+use crate::scanner::{Bracket, Scanner, Token, TokenKind};
 use crate::source_map::{SourceFile, Spanned};
 
 pub(crate) struct Parser<'src> {
@@ -25,19 +27,25 @@ impl<'src> Parser<'src> {
         if tok == Token::EOF {
             Err(vec![Diag::EmptyTranslationUnit])
         } else {
-            let translation_unit = TranslationUnit {
-                external_decls: vec![self.parse_external_decl(*tok)],
-            };
+            let mut external_decls = vec![];
+            let mut diagnostics = vec![];
 
-            Ok(translation_unit)
+            match self.parse_decl(*tok) {
+                Ok(decl) => external_decls.push(decl),
+                Err(decl_diags) => diagnostics.extend(decl_diags),
+            }
+
+            if diagnostics.is_empty() {
+                let translation_unit = TranslationUnit { external_decls };
+
+                Ok(translation_unit)
+            } else {
+                Err(diagnostics)
+            }
         }
     }
 
-    fn parse_external_decl(&mut self, type_spec_tok: Token) -> ExternalDecl {
-        ExternalDecl::VarDecl(self.parse_var_decl(type_spec_tok))
-    }
-
-    fn parse_var_decl(&mut self, type_spec_tok: Token) -> VarDecl {
+    fn parse_decl(&mut self, type_spec_tok: Token) -> Result<Decl, Vec<Diag>> {
         debug_assert!(
             type_spec_tok.kind == TokenKind::KwInt || type_spec_tok.kind == TokenKind::KwLong
         );
@@ -46,35 +54,100 @@ impl<'src> Parser<'src> {
         let ident_tok = self.consume_tok().unwrap();
         debug_assert!(ident_tok.kind == TokenKind::Identifier);
 
-        let initializer = if self.peek_tok().unwrap().kind == TokenKind::Equal {
-            self.consume_tok().unwrap();
+        let lexeme = self.source_file.get_text_snippet(ident_tok);
+        let next_tok = self.consume_tok().unwrap();
 
-            let init_tok = self.consume_tok().unwrap();
-            debug_assert!(init_tok.kind == TokenKind::NumericConstant);
+        if next_tok.kind == TokenKind::Open(Bracket::Round) {
+            let mut parameters = vec![];
+            let mut decl_diags = vec![];
 
-            let parse_result = parse_numeric_constant(self.source_file.get_text_snippet(init_tok));
-            debug_assert!(!parse_result.has_overflowed);
+            loop {
+                let tok = self.consume_tok().unwrap();
 
-            match parse_result.num_const {
-                NumConst::Int(int_const) => {
-                    debug_assert!(!int_const.is_unsigned);
+                match tok.kind {
+                    TokenKind::Closed(Bracket::Round) => break,
+                    TokenKind::Semicolon => {
+                        decl_diags.push(Diag::MissingClosingParen);
+                        break;
+                    }
+                    TokenKind::KwInt => {
+                        let identifier = if self.peek_tok().unwrap().kind == TokenKind::Identifier {
+                            let ident_tok = self.consume_tok().unwrap();
+                            let lexeme = self.source_file.get_text_snippet(ident_tok);
 
-                    Some(IntegerLiteral {
-                        value: int_const.value,
-                        ty: Type::BuiltinType(BuiltinTypeKind::Int),
-                    })
+                            Some(lexeme.to_owned())
+                        } else {
+                            None
+                        };
+
+                        parameters.push(Param {
+                            type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+                            identifier,
+                        });
+                    }
+                    unknown_kind => {
+                        decl_diags.push(Diag::ExpectedButGot {
+                            expected: TokenKind::KwInt,
+                            got: unknown_kind,
+                        });
+                        continue;
+                    }
+                }
+
+                let next_tok = self.peek_tok().unwrap();
+
+                if next_tok.kind != TokenKind::Closed(Bracket::Round) {
+                    if next_tok.kind == TokenKind::Comma {
+                        self.consume_tok().unwrap();
+                    } else {
+                        decl_diags.push(Diag::ExpectedButGot {
+                            expected: TokenKind::Comma,
+                            got: next_tok.kind,
+                        });
+                    }
                 }
             }
+
+            if decl_diags.is_empty() {
+                Ok(Decl::Func(FuncDecl {
+                    ret_type_specifier: type_spec,
+                    identifier: lexeme.to_owned(),
+                    parameters,
+                }))
+            } else {
+                Err(decl_diags)
+            }
         } else {
-            None
-        };
+            let initializer = if next_tok.kind == TokenKind::Equal {
+                Some(self.parse_initializer())
+            } else {
+                None
+            };
 
-        let lexeme = self.source_file.get_text_snippet(ident_tok);
+            Ok(Decl::Var(VarDecl {
+                type_specifier: type_spec,
+                identifier: lexeme.to_owned(),
+                initializer,
+            }))
+        }
+    }
 
-        VarDecl {
-            type_specifier: type_spec,
-            identifier: lexeme.to_owned(),
-            initializer,
+    fn parse_initializer(&mut self) -> IntegerLiteral {
+        let init_tok = self.consume_tok().unwrap();
+        debug_assert!(init_tok.kind == TokenKind::NumericConstant);
+
+        let parse_result = parse_numeric_constant(self.source_file.get_text_snippet(init_tok));
+        debug_assert!(!parse_result.has_overflowed);
+
+        match parse_result.num_const {
+            NumConst::Int(int_const) => {
+                debug_assert!(!int_const.is_unsigned);
+
+                IntegerLiteral {
+                    value: int_const.value,
+                    ty: Type::BuiltinType(BuiltinTypeKind::Int),
+                }
+            }
         }
     }
 

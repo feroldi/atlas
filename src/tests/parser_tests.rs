@@ -2,9 +2,12 @@
 
 use proptest::prelude::*;
 
-use crate::ast::{BuiltinTypeKind, ExternalDecl, IntegerLiteral, TranslationUnit, Type, VarDecl};
+use crate::ast::{
+    BuiltinTypeKind, Decl, FuncDecl, IntegerLiteral, Param, TranslationUnit, Type, VarDecl,
+};
 use crate::diagnostics::Diag;
 use crate::parser::Parser;
+use crate::scanner::TokenKind;
 use crate::tests::*;
 
 #[test]
@@ -43,7 +46,7 @@ proptest! {
         };
 
         let expected = TranslationUnit {
-            external_decls: vec![ExternalDecl::VarDecl(var_decl)],
+            external_decls: vec![Decl::Var(var_decl)],
         };
 
         assert_eq!(result, Ok(expected));
@@ -84,11 +87,218 @@ proptest! {
         };
 
         let expected = TranslationUnit {
-            external_decls: vec![ExternalDecl::VarDecl(var_decl)],
+            external_decls: vec![Decl::Var(var_decl)],
         };
 
         assert_eq!(result, Ok(expected));
     }
+}
+
+#[test]
+fn parse_basic_top_level_function_declaration() {
+    let result = parse(
+        r#"
+        int foo();
+        "#,
+    );
+
+    let func_decl = FuncDecl {
+        ret_type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+        identifier: "foo".to_owned(),
+        parameters: vec![],
+    };
+
+    let expected = TranslationUnit {
+        external_decls: vec![Decl::Func(func_decl)],
+    };
+
+    assert_eq!(result, Ok(expected));
+}
+
+#[test]
+fn parse_basic_top_level_function_declaration_with_unnamed_parameter() {
+    let result = parse(
+        r#"
+        int foo(int);
+        "#,
+    );
+
+    let func_decl = FuncDecl {
+        ret_type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+        identifier: "foo".to_owned(),
+        parameters: vec![Param {
+            type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+            identifier: None,
+        }],
+    };
+
+    let expected = TranslationUnit {
+        external_decls: vec![Decl::Func(func_decl)],
+    };
+
+    assert_eq!(result, Ok(expected));
+}
+
+#[test]
+fn parse_basic_top_level_function_declaration_with_named_parameter() {
+    let result = parse(
+        r#"
+        int foo(int bar);
+        "#,
+    );
+
+    let func_decl = FuncDecl {
+        ret_type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+        identifier: "foo".to_owned(),
+        parameters: vec![Param {
+            type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+            identifier: Some("bar".to_owned()),
+        }],
+    };
+
+    let expected = TranslationUnit {
+        external_decls: vec![Decl::Func(func_decl)],
+    };
+
+    assert_eq!(result, Ok(expected));
+}
+
+#[test]
+fn parse_basic_top_level_function_declaration_with_many_unnamed_parameters() {
+    let result = parse(
+        r#"
+        int foo(int, int, int);
+        "#,
+    );
+
+    let func_decl = FuncDecl {
+        ret_type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+        identifier: "foo".to_owned(),
+        parameters: vec![
+            Param {
+                type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+                identifier: None,
+            },
+            Param {
+                type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+                identifier: None,
+            },
+            Param {
+                type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+                identifier: None,
+            },
+        ],
+    };
+
+    let expected = TranslationUnit {
+        external_decls: vec![Decl::Func(func_decl)],
+    };
+
+    assert_eq!(result, Ok(expected));
+}
+
+#[test]
+fn parse_basic_top_level_function_declaration_with_many_named_parameters() {
+    let result = parse(
+        r#"
+        int foo(int x, int y, int z);
+        "#,
+    );
+
+    let func_decl = FuncDecl {
+        ret_type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+        identifier: "foo".to_owned(),
+        parameters: vec![
+            Param {
+                type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+                identifier: Some("x".to_owned()),
+            },
+            Param {
+                type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+                identifier: Some("y".to_owned()),
+            },
+            Param {
+                type_specifier: Type::BuiltinType(BuiltinTypeKind::Int),
+                identifier: Some("z".to_owned()),
+            },
+        ],
+    };
+
+    let expected = TranslationUnit {
+        external_decls: vec![Decl::Func(func_decl)],
+    };
+
+    assert_eq!(result, Ok(expected));
+}
+
+#[test]
+fn parse_error_basic_top_level_function_declaration_with_many_parameters_missing_comma() {
+    let result = parse(
+        r#"
+        int foo(int a int int);
+        "#,
+    );
+
+    let expected = vec![
+        Diag::ExpectedButGot {
+            expected: TokenKind::Comma,
+            got: TokenKind::KwInt,
+        },
+        Diag::ExpectedButGot {
+            expected: TokenKind::Comma,
+            got: TokenKind::KwInt,
+        },
+    ];
+
+    assert_eq!(result, Err(expected));
+}
+
+#[test]
+fn parse_error_basic_top_level_function_declaration_missing_closing_paren() {
+    let result = parse(
+        r#"
+        int foo(;
+        "#,
+    );
+
+    let expected = vec![Diag::MissingClosingParen];
+
+    assert_eq!(result, Err(expected));
+}
+
+#[test]
+fn parse_error_basic_top_level_function_declaration_unexpected_token() {
+    let result = parse(
+        r#"
+        int foo(+);
+        "#,
+    );
+
+    let expected = vec![Diag::ExpectedButGot {
+        expected: TokenKind::KwInt,
+        got: TokenKind::Plus,
+    }];
+
+    assert_eq!(result, Err(expected));
+}
+
+#[test]
+fn parse_error_basic_top_level_function_declaration_unexpected_token_and_missing_closing_paren() {
+    let result = parse(
+        r#"
+        int foo(+;
+        "#,
+    );
+
+    let expected = vec![
+        Diag::ExpectedButGot {
+            expected: TokenKind::KwInt,
+            got: TokenKind::Plus,
+        },
+        Diag::MissingClosingParen,
+    ];
+
+    assert_eq!(result, Err(expected));
 }
 
 fn parse(source_text: &str) -> Result<TranslationUnit, Vec<Diag>> {

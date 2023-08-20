@@ -1,4 +1,6 @@
-#[derive(PartialEq, Eq, Debug, Copy, Clone)]
+use crate::scanner::TokenKind;
+
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub(crate) enum Diag {
     UnrecognizedChar(char),
     EmptyCharacterConstant,
@@ -6,4 +8,6 @@ pub(crate) enum Diag {
     UnterminatedStringLiteral,
     UnterminatedBlockComment,
     EmptyTranslationUnit,
+    ExpectedButGot { expected: TokenKind, got: TokenKind },
+    MissingClosingParen,
 }
