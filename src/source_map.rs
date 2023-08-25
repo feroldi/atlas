@@ -32,10 +32,10 @@ impl<T> Spanned<T> {
         Spanned { value, span }
     }
 
-    pub const fn with_dummy_span(value: T) -> Spanned<T> {
+    pub fn with_dummy_span(value: T) -> Spanned<T> {
         Spanned {
             value,
-            span: Span::DUMMY,
+            span: Span::dummy(),
         }
     }
 }
@@ -62,11 +62,6 @@ pub struct Span {
 }
 
 impl Span {
-    pub const DUMMY: Span = Span {
-        start: BytePos::from_usize(0),
-        end: BytePos::from_usize(0),
-    };
-
     pub fn from_usizes(start: usize, end: usize) -> Span {
         debug_assert!(start <= end, "cannot have start greater than end");
 
@@ -75,9 +70,15 @@ impl Span {
             end: BytePos::from_usize(end),
         }
     }
+
+    pub(crate) fn dummy() -> Span {
+        Span {
+            start: BytePos::from_usize(0),
+            end: BytePos::from_usize(0),
+        }
+    }
 }
 
-#[const_trait]
 pub trait Pos: Sized + Add + AddAssign {
     fn from_usize(value: usize) -> Self;
     fn to_usize(self) -> usize;
@@ -86,7 +87,7 @@ pub trait Pos: Sized + Add + AddAssign {
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct BytePos(usize);
 
-impl const Pos for BytePos {
+impl Pos for BytePos {
     fn from_usize(value: usize) -> BytePos {
         BytePos(value)
     }

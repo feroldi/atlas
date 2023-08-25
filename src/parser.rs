@@ -24,7 +24,7 @@ impl<'src> Parser<'src> {
     pub(crate) fn parse_translation_unit(&mut self) -> Result<TranslationUnit, Vec<Diag>> {
         let tok = self.consume_tok().unwrap();
 
-        if tok == Token::EOF {
+        if tok == Token::eof() {
             Err(vec![Diag::EmptyTranslationUnit])
         } else {
             let mut external_decls = vec![];
@@ -158,7 +158,7 @@ impl<'src> Parser<'src> {
 
         let peeked_tok = self.cached_peek_tok.unwrap();
 
-        if peeked_tok != Token::EOF {
+        if peeked_tok != Token::eof() {
             self.cached_peek_tok = None;
         }
 

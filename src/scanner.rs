@@ -21,7 +21,7 @@ impl<'input> Scanner<'input> {
         let span_start = self.chars.peek_byte_pos();
 
         let token_kind = match self.consume() {
-            CharStream::EOF_CHAR => return Ok(Token::EOF),
+            CharStream::EOF_CHAR => return Ok(Token::eof()),
             '(' => TokenKind::Open(Bracket::Round),
             ')' => TokenKind::Closed(Bracket::Round),
             '[' => TokenKind::Open(Bracket::Square),
@@ -364,9 +364,11 @@ pub struct Token {
 }
 
 impl Token {
-    pub const EOF: Spanned<Token> = Spanned::with_dummy_span(Token {
-        kind: TokenKind::Eof,
-    });
+    pub fn eof() -> Spanned<Token> {
+        Spanned::with_dummy_span(Token {
+            kind: TokenKind::Eof,
+        })
+    }
 }
 
 #[derive(PartialEq, Debug, Copy, Clone)]

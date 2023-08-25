@@ -877,7 +877,7 @@ fn try_scan_all(input_text: &str) -> Vec<Result<(TokenKind, &str), Diag>> {
 
     'outer: loop {
         match scanner.scan_next_token() {
-            Ok(token) if token != Token::EOF => {
+            Ok(token) if token != Token::eof() => {
                 let lexeme = source_file.get_text_snippet(token);
                 tokens.push(Ok((token.kind, lexeme)));
             }

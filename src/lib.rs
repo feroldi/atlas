@@ -1,4 +1,4 @@
-#![feature(assert_matches, const_trait_impl, is_ascii_octdigit)]
+#![feature(assert_matches, is_ascii_octdigit)]
 
 pub mod ast;
 pub mod char_stream;

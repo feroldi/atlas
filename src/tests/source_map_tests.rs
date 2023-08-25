@@ -107,10 +107,10 @@ fn spanned_new_should_accept_a_dummy_span() {
     #[derive(PartialEq, Debug)]
     struct S;
 
-    let spanned = Spanned::new(S, Span::DUMMY);
+    let spanned = Spanned::new(S, Span::dummy());
 
     assert_eq!(spanned.value, S);
-    assert_eq!(spanned.span, Span::DUMMY);
+    assert_eq!(spanned.span, Span::dummy());
 }
 
 #[test]
@@ -121,7 +121,7 @@ fn spanned_with_dummy_span_should_create_a_spanned_with_a_value_and_dummy_span()
     let spanned = Spanned::with_dummy_span(S);
 
     assert_eq!(spanned.value, S);
-    assert_eq!(spanned.span, Span::DUMMY);
+    assert_eq!(spanned.span, Span::dummy());
 }
 
 proptest! {
@@ -153,7 +153,7 @@ proptest! {
     fn get_text_snippet_should_return_empty_string_for_dummy_span(text in ".*") {
         let sf = SourceFile::new(&text);
 
-        assert_eq!(sf.get_text_snippet(Span::DUMMY), "");
+        assert_eq!(sf.get_text_snippet(Span::dummy()), "");
     }
 }
 
@@ -182,7 +182,7 @@ proptest! {
 proptest! {
     #[test]
     fn get_text_snippet_should_panic_if_span_is_non_dummy_and_text_is_empty(
-        span in valid_span().prop_filter("no dummy", |&span| span != Span::DUMMY)
+        span in valid_span().prop_filter("no dummy", |&span| span != Span::dummy())
     ) {
         let sf = SourceFile::new("");
         let result = std::panic::catch_unwind(|| sf.get_text_snippet(span));
